@@ -1,0 +1,15 @@
+// ==============================================================================
+// Esquema do Prisma (schema.prisma)
+// Descrição: Define a modelagem do banco de dados relacional para o sistema QCAcesso,
+// contendo as tabelas de Usuários, Funcionários, Controle de Acesso, Períodos de
+// Férias, Logs de Auditoria e suas respectivas relações.
+// ==============================================================================
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
