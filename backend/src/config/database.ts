@@ -1,25 +1,13 @@
-/**
- * Configuração de Conexão com o Banco de Dados (database.ts)
- * Descrição: Inicializa e exporta a instância singleton do Prisma Client
- * para realização de operações de leitura e escrita no banco de dados.
- */
+import { createClient } from '@supabase/supabase-js';
+import type { EnvConfig } from './env';
+import type { Database } from './database.types';
 
-import { PrismaClient } from '@prisma/client';
-import env from './env';
-
-const globalForPrisma = globalThis as unknown as {
-  prisma?: PrismaClient;
-};
-
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    datasourceUrl: env.DATABASE_URL,
-    log: env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+export function createDatabase(config: EnvConfig) {
+  // Um cliente por sessão: nunca compartilhar a identidade de dois usuários.
+  return createClient<Database>(config.SUPABASE_URL, config.SUPABASE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: {
+      fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(12_000) }),
+    },
   });
-
-if (env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
 }
-
-export default prisma;

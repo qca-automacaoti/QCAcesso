@@ -1,14 +1,7 @@
-/**
- * Componente Principal da Aplicação (App.tsx)
- * Descrição: Componente raiz do frontend React. Gerencia o layout principal,
- * roteamento de telas e estado global da interface do QCAcesso.
- */
-function App() {
-  return (
-    <main>
-      <h1>QCAcesso - Controle de Acesso</h1>
-    </main>
-  )
-}
+import { BrowserRouter } from 'react-router-dom'
+import { AuthProvider } from './features/auth/AuthProvider'
+import { AppRouter } from './features/auth/AuthRoutes'
 
-export default App
+export default function App() {
+  return <BrowserRouter><AuthProvider><AppRouter /></AuthProvider></BrowserRouter>
+}

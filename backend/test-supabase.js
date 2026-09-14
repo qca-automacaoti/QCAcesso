@@ -1,96 +1,45 @@
-/**
- * Teste de Conexão com o Supabase PostgreSQL
- * Executa diagnósticos completos de conectividade, autenticação e permissões.
- */
-
-const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+// Diagnóstico somente leitura. Não cria nem altera tabelas.
+const fs = require('node:fs');
+const path = require('node:path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env'), quiet: true });
 const { Client } = require('pg');
 
-async function testConnection() {
-  console.log('='.repeat(60));
-  console.log('🔍 INICIANDO DIAGNÓSTICO DE CONEXÃO COM SUPABASE');
-  console.log('='.repeat(60));
-
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    console.error('❌ ERRO: DATABASE_URL não definida no arquivo .env');
-    process.exit(1);
-  }
-
-  // Mascarar a senha para exibição segura nos logs
-  const maskedUrl = connectionString.replace(/:([^:@]+)@/, ':****@');
-  console.log(`📌 Conectando a: ${maskedUrl}`);
-
-  const client = new Client({
-    connectionString,
-    ssl: { rejectUnauthorized: false },
+function connectionOptions() {
+  if (!process.env.DATABASE_URL) throw new Error('Configure DATABASE_URL em backend/.env.');
+  // sslmode na URL sobrescreveria o objeto ssl abaixo no driver pg; a verificação é configurada aqui.
+  const url = new URL(process.env.DATABASE_URL);
+  for (const param of ['sslmode', 'sslrootcert', 'sslcert', 'sslkey']) url.searchParams.delete(param);
+  // O Supabase assina o certificado do banco com uma CA própria (Database Settings > SSL Configuration).
+  const caPath = process.env.DATABASE_SSL_CA;
+  return {
+    connectionString: url.toString(),
     connectionTimeoutMillis: 10000,
-  });
-
-  try {
-    const startTime = Date.now();
-    await client.connect();
-    const duration = Date.now() - startTime;
-
-    console.log(`✅ Conexão estabelecida com sucesso! (${duration}ms)`);
-
-    // 1. Informações da Sessão
-    const sessionRes = await client.query(`
-      SELECT 
-        current_database() AS database,
-        current_user AS user,
-        version() AS version,
-        NOW() AS server_time
-    `);
-    const session = sessionRes.rows[0];
-
-    console.log('\n📊 INFORMAÇÕES DA SESSÃO:');
-    console.log(`   - Banco de Dados: ${session.database}`);
-    console.log(`   - Usuário:        ${session.user}`);
-    console.log(`   - Horário Servidor: ${session.server_time}`);
-    console.log(`   - Versão PG:      ${session.version.split(',')[0]}`);
-
-    // 2. Teste de Consulta de Tabelas no Schema 'public'
-    const tablesRes = await client.query(`
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = 'public'
-      ORDER BY table_name;
-    `);
-
-    console.log('\n📁 TABELAS NO SCHEMA PUBLIC:');
-    if (tablesRes.rows.length === 0) {
-      console.log('   (Nenhuma tabela criada ainda - pronto para migrations)');
-    } else {
-      tablesRes.rows.forEach(t => console.log(`   - ${t.table_name}`));
-    }
-
-    // 3. Teste de Operação de Leitura e Escrita (Criar e Deletar tabela temporária de teste)
-    console.log('\n🧪 TESTANDO PERMISSÕES DDL E DML:');
-    await client.query('CREATE TABLE IF NOT EXISTS _test_qcacesso_conn (id SERIAL PRIMARY KEY, test_val TEXT);');
-    console.log('   - CREATE TABLE: Sucesso');
-
-    await client.query("INSERT INTO _test_qcacesso_conn (test_val) VALUES ('teste_conexao_qcacesso');");
-    console.log('   - INSERT:       Sucesso');
-
-    const selectTest = await client.query('SELECT * FROM _test_qcacesso_conn;');
-    console.log(`   - SELECT:       Sucesso (${selectTest.rows.length} registro(s))`);
-
-    await client.query('DROP TABLE _test_qcacesso_conn;');
-    console.log('   - DROP TABLE:   Sucesso (limpeza realizada)');
-
-    console.log('\n' + '='.repeat(60));
-    console.log('🎉 TODOS OS TESTES PASSARAM! BANCO SUPABASE TOTALMENTE ACESSÍVEL!');
-    console.log('='.repeat(60));
-
-    await client.end();
-  } catch (error) {
-    console.error('\n❌ FALHA NA CONEXÃO OU TESTE:');
-    console.error(error.message);
-    try { await client.end(); } catch (e) {}
-    process.exit(1);
-  }
+    query_timeout: 10000,
+    ssl: caPath ? { ca: fs.readFileSync(path.resolve(__dirname, caPath), 'utf8') } : { rejectUnauthorized: true },
+  };
 }
 
-testConnection();
+async function main() {
+  const client = new Client(connectionOptions());
+  try {
+    await client.connect();
+    await client.query('SELECT 1');
+    const { rows } = await client.query(
+      "SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'usuarios' ORDER BY ordinal_position"
+    );
+    console.log('Conexão PostgreSQL confirmada.');
+    console.log('Colunas de public.usuarios:', rows.map(row => row.column_name + ' (' + row.data_type + ')').join(', ') || 'tabela não encontrada');
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+}
+main().catch((error) => {
+  // Somente o código do erro: a mensagem do driver pode conter dados da conexão.
+  console.error('Falha no diagnóstico' + (error?.code ? ' (' + error.code + ')' : '') + '. Nenhuma alteração foi feita no banco.');
+  if (error?.code === 'SELF_SIGNED_CERT_IN_CHAIN') {
+    console.error('Baixe o certificado em Supabase > Database Settings > SSL Configuration e aponte DATABASE_SSL_CA para o arquivo.');
+  } else if (error instanceof Error && !error.code) {
+    console.error(error.message);
+  }
+  process.exitCode = 1;
+});
