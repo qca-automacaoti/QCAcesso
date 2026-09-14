@@ -1,49 +1,46 @@
-/**
- * Gerenciamento de Variáveis de Ambiente (env.ts)
- * Descrição: Carrega, valida e tipa as configurações da aplicação
- * a partir do arquivo .env, prevenindo execução sem variáveis obrigatórias.
- */
-
 import dotenv from 'dotenv';
-import path from 'path';
-
-// Carrega as variáveis do arquivo .env
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+import path from 'node:path';
 
 export interface EnvConfig {
   PORT: number;
-  NODE_ENV: string;
-  DATABASE_URL: string;
-  DIRECT_URL?: string;
-  JWT_SECRET: string;
-  JWT_EXPIRES_IN: string;
-  SMTP_HOST?: string;
-  SMTP_PORT?: number;
-  SMTP_USER?: string;
-  SMTP_PASS?: string;
-  SMTP_FROM?: string;
+  NODE_ENV: 'development' | 'test' | 'production';
+  FRONTEND_ORIGIN: string;
+  SUPABASE_URL: string;
+  SUPABASE_KEY: string;
+  SESSION_TTL_MS: number;
 }
 
-const requiredEnvVars: (keyof EnvConfig)[] = ['DATABASE_URL', 'JWT_SECRET'];
-
-for (const envVar of requiredEnvVars) {
-  if (!process.env[envVar]) {
-    console.warn(`[AVISO] Variável de ambiente obrigatória não definida: ${envVar}`);
+export function loadEnv(): EnvConfig {
+  dotenv.config({ path: path.resolve(__dirname, '../../.env'), quiet: true });
+  const mode = process.env.NODE_ENV || 'development';
+  if (!['development', 'test', 'production'].includes(mode)) throw new Error('NODE_ENV inválido.');
+  const url = process.env.SUPABASE_URL || '';
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+  if (!url || !key || /SEU_PROJETO|SUBSTITUA/.test(url + key)) {
+    throw new Error('Configure SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY (ou SUPABASE_ANON_KEY) em backend/.env.');
   }
+  const parsedUrl = new URL(url);
+  if (parsedUrl.protocol !== 'https:' && !(mode !== 'production' && ['localhost', '127.0.0.1'].includes(parsedUrl.hostname))) {
+    throw new Error('SUPABASE_URL deve usar HTTPS.');
+  }
+  // Uma chave administrativa ignoraria RLS; a aplicação usa somente chave pública.
+  let keyRole: unknown;
+  if (key.split('.').length === 3) {
+    try { keyRole = JSON.parse(Buffer.from(key.split('.')[1], 'base64url').toString()).role; }
+    catch { throw new Error('SUPABASE_ANON_KEY inválida.'); }
+  }
+  if (key.startsWith('sb_secret_') || keyRole === 'service_role') {
+    throw new Error('Use uma chave publishable/anon, nunca secret/service_role no login.');
+  }
+  const origin = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
+  if (new URL(origin).origin !== origin) throw new Error('FRONTEND_ORIGIN deve conter somente a origem, sem caminho ou barra final.');
+  if (mode === 'production' && !origin.startsWith('https://')) throw new Error('FRONTEND_ORIGIN deve usar HTTPS em produção.');
+  const port = Number(process.env.PORT || 3000);
+  const hours = Number(process.env.SESSION_TTL_HOURS || 8);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT inválida.');
+  if (!Number.isFinite(hours) || hours < 0.01 || hours > 24) throw new Error('SESSION_TTL_HOURS deve ser maior ou igual a 0.01 e até 24.');
+  return {
+    PORT: port, NODE_ENV: mode as EnvConfig['NODE_ENV'], FRONTEND_ORIGIN: origin,
+    SUPABASE_URL: parsedUrl.origin, SUPABASE_KEY: key, SESSION_TTL_MS: hours * 60 * 60 * 1000,
+  };
 }
-
-export const env: EnvConfig = {
-  PORT: Number(process.env.PORT) || 3000,
-  NODE_ENV: process.env.NODE_ENV || 'development',
-  DATABASE_URL: process.env.DATABASE_URL || '',
-  DIRECT_URL: process.env.DIRECT_URL,
-  JWT_SECRET: process.env.JWT_SECRET || 'dev-secret-key-qcacesso',
-  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '1d',
-  SMTP_HOST: process.env.SMTP_HOST,
-  SMTP_PORT: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
-  SMTP_USER: process.env.SMTP_USER,
-  SMTP_PASS: process.env.SMTP_PASS,
-  SMTP_FROM: process.env.SMTP_FROM,
-};
-
-export default env;
