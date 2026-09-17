@@ -2,6 +2,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useAuth } from './auth.context'
 import { AppLayout } from '../../components/layout/AppLayout'
 import { DashboardPage } from '../dashboard/DashboardPage'
+import { UploadPage } from '../upload/UploadPage'
 import { LoginPage } from './LoginPage'
 import { ProtectedRoute } from './ProtectedRoute'
 
@@ -30,6 +31,7 @@ export function AppRouter() {
       <Route element={<ProtectedRoute />}>
         <Route path="/app" element={<AppLayout />}>
           <Route index element={<DashboardPage />} />
+          <Route path="uploads" element={<UploadPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to={signedIn ? '/app' : '/login'} replace />} />

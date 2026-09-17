@@ -9,6 +9,7 @@ import { cookieSettings } from './modules/auth/auth.controller';
 import { AuthError } from './modules/auth/auth.types';
 import type { AuthService } from './modules/auth/auth.service';
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes';
+import { uploadRoutes } from './modules/upload/upload.routes';
 
 export function createApp(config: EnvConfig, auth: AuthService) {
   const app = express();
@@ -19,11 +20,12 @@ export function createApp(config: EnvConfig, auth: AuthService) {
   app.use(cookieParser());
   app.use((req, _res, next) => {
     if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+      const uploadMultipart = req.method === 'POST' && req.path === '/api/uploads' && Boolean(req.is('multipart/form-data'));
       if ((req.get('Origin') && req.get('Origin') !== config.FRONTEND_ORIGIN) ||
           req.get('Sec-Fetch-Site') === 'cross-site' || req.get('X-QCA-Request') !== '1') {
         return next(new AuthError(403, 'ORIGEM_NAO_PERMITIDA', 'Origem da requisição não permitida.'));
       }
-      if (!req.is('application/json')) return next(new AuthError(415, 'FORMATO_INVALIDO', 'Envie os dados em formato JSON.'));
+      if (!uploadMultipart && !req.is('application/json')) return next(new AuthError(415, 'FORMATO_INVALIDO', 'Envie os dados em formato JSON.'));
     }
     next();
   });
@@ -34,6 +36,7 @@ export function createApp(config: EnvConfig, auth: AuthService) {
   });
   app.use('/api/auth', authRoutes(auth, config));
   app.use('/api/dashboard', dashboardRoutes(auth, config));
+  app.use('/api/uploads', uploadRoutes(auth, config));
   app.use((_req, res) => { res.status(404).json({ error: { code: 'NAO_ENCONTRADO', message: 'Rota não encontrada.' } }); });
   const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     if (error instanceof AuthError) {
