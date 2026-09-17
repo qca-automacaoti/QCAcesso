@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 
 const navItems = [
   { label: 'Dashboard', to: '/app' },
+  { label: 'Uploads', to: '/app/uploads' },
 ]
 
 export function Sidebar() {

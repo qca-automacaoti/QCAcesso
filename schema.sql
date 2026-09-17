@@ -243,3 +243,34 @@ drop policy if exists "autenticados podem ler controle_acesso" on public.control
 create policy "autenticados podem ler controle_acesso" on public.controle_acesso
   for select using (auth.role() = 'authenticated');
 
+drop policy if exists "autenticados podem inserir funcionarios" on public.funcionarios;
+create policy "autenticados podem inserir funcionarios" on public.funcionarios
+  for insert with check (auth.role() = 'authenticated');
+
+drop policy if exists "autenticados podem atualizar funcionarios" on public.funcionarios;
+create policy "autenticados podem atualizar funcionarios" on public.funcionarios
+  for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+drop policy if exists "autenticados podem ler uploads" on public.upload_planilhas;
+create policy "autenticados podem ler uploads" on public.upload_planilhas
+  for select using (auth.role() = 'authenticated');
+
+drop policy if exists "autenticados podem inserir uploads proprios" on public.upload_planilhas;
+create policy "autenticados podem inserir uploads proprios" on public.upload_planilhas
+  for insert with check (auth.role() = 'authenticated' and usuario_id = auth.uid());
+
+drop policy if exists "autenticados podem ler checklist" on public.checklist_revisao;
+create policy "autenticados podem ler checklist" on public.checklist_revisao
+  for select using (auth.role() = 'authenticated');
+
+drop policy if exists "autenticados podem inserir checklist" on public.checklist_revisao;
+create policy "autenticados podem inserir checklist" on public.checklist_revisao
+  for insert with check (auth.role() = 'authenticated');
+
+drop policy if exists "autenticados podem ler logs" on public.logs_atividade;
+create policy "autenticados podem ler logs" on public.logs_atividade
+  for select using (auth.role() = 'authenticated');
+
+drop policy if exists "autenticados podem inserir logs" on public.logs_atividade;
+create policy "autenticados podem inserir logs" on public.logs_atividade
+  for insert with check (auth.role() = 'authenticated');

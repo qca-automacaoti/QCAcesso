@@ -72,6 +72,7 @@ a { color: inherit; }
 .centered-state { display: grid; min-height: 100dvh; place-content: center; padding: 32px; text-align: center; gap: 16px; }
 .centered-state p { margin: 0; color: var(--muted); }
 .spinner { width: 24px; height: 24px; margin: 0 auto; border: 3px solid #d9e6e5; border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .app-shell { min-height: 100dvh; display: grid; grid-template-columns: 264px minmax(0, 1fr); background: #f4f7f7; }
 .sidebar { background: #073d42; color: white; padding: 28px 22px; display: flex; flex-direction: column; gap: 38px; }
 .sidebar nav { display: grid; gap: 8px; }
@@ -128,11 +129,38 @@ a { color: inherit; }
 .timeline p { margin: 6px 0; color: var(--muted); line-height: 1.5; }
 .timeline time { color: #7a8b92; font-size: .875rem; }
 .empty-state { margin: 0; color: var(--muted); background: #f6f9f9; border: 1px dashed #cbd8dc; border-radius: 8px; padding: 18px; text-align: center; line-height: 1.6; }
+.upload-page { display: grid; gap: 24px; }
+.upload-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, .75fr); gap: 16px; align-items: start; }
+.upload-dropzone-wrap { display: grid; gap: 14px; }
+.upload-dropzone { width: 100%; min-height: 220px; border: 1px dashed #9dbdc0; border-radius: 8px; background: #f8fbfb; color: var(--ink); padding: 24px; display: grid; place-items: center; align-content: center; gap: 10px; text-align: center; }
+.upload-dropzone:hover:not(:disabled), .upload-dropzone-active { background: #edf7f7; border-color: var(--accent); }
+.upload-dropzone strong { font-size: 1.05rem; overflow-wrap: anywhere; }
+.upload-dropzone small { color: var(--muted); line-height: 1.5; }
+.upload-icon { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: #e3f2f2; color: var(--accent); font-size: 1.4rem; font-weight: 800; }
+.upload-actions { margin-top: 18px; display: flex; gap: 12px; flex-wrap: wrap; }
+.upload-result { margin-top: 18px; display: grid; gap: 5px; border-radius: 8px; padding: 14px 16px; border: 1px solid #dfe8ea; }
+.upload-result span { color: var(--muted); }
+.upload-result-concluido { background: #effaf4; border-color: #bfe4cf; }
+.upload-result-erro { background: #fff8e8; border-color: #f0d89a; }
+.upload-rules dd { font-size: .95rem; }
+.upload-errors { display: grid; gap: 10px; }
+.upload-errors article { display: grid; gap: 5px; padding: 12px 14px; background: #fff8e8; border: 1px solid #f0d89a; border-radius: 8px; }
+.upload-errors span { color: var(--muted); }
+.upload-history { display: grid; gap: 10px; }
+.upload-history article { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 14px; border: 1px solid #e3ebed; border-radius: 8px; }
+.upload-history article > div { display: grid; gap: 5px; min-width: 0; }
+.upload-history strong { overflow-wrap: anywhere; }
+.upload-history span { color: var(--muted); }
+.status-pill { width: fit-content; justify-self: end; border-radius: 999px; padding: 4px 9px; font-size: .75rem; letter-spacing: .04em; }
+.status-concluido { color: #23784a; background: #e8f6ee; }
+.status-erro { color: #9a6500; background: #fff4dc; }
+.status-processando { color: var(--accent); background: #edf5f5; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 @media (max-width: 1120px) {
   .indicator-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashboard-grid { grid-template-columns: 1fr; }
+  .upload-grid { grid-template-columns: 1fr; }
   .dashboard-panel-wide { grid-row: auto; }
 }
 @media (max-width: 800px) {
@@ -152,6 +180,8 @@ a { color: inherit; }
   .action-row { grid-template-columns: 1fr; align-items: start; }
   .action-badge { width: fit-content; }
   .action-date { text-align: left; }
+  .upload-history article { align-items: flex-start; flex-direction: column; }
+  .status-pill { justify-self: start; }
 }
 @media (max-width: 480px) {
   .login-heading h2 { font-size: 1.65rem; }

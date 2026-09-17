@@ -37,8 +37,26 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: never;
-        Update: never;
+        Insert: {
+          id?: string;
+          empresa: string;
+          cadastro: string;
+          nome: string;
+          email?: string | null;
+          supervisor_id?: string | null;
+          status_atual?: StatusFuncionario;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          empresa?: string;
+          cadastro?: string;
+          nome?: string;
+          email?: string | null;
+          supervisor_id?: string | null;
+          status_atual?: StatusFuncionario;
+          updated_at?: string;
+        };
         Relationships: [];
       };
       upload_planilhas: {
@@ -52,8 +70,22 @@ export interface Database {
           linhas_com_erro: number;
           status: StatusUpload;
         };
-        Insert: never;
-        Update: never;
+        Insert: {
+          id?: string;
+          nome_arquivo: string;
+          usuario_id: string;
+          data_upload?: string;
+          total_linhas?: number;
+          linhas_processadas?: number;
+          linhas_com_erro?: number;
+          status?: StatusUpload;
+        };
+        Update: {
+          total_linhas?: number;
+          linhas_processadas?: number;
+          linhas_com_erro?: number;
+          status?: StatusUpload;
+        };
         Relationships: [];
       };
       checklist_revisao: {
@@ -71,8 +103,31 @@ export interface Database {
           revisado_em: string | null;
           created_at: string;
         };
-        Insert: never;
-        Update: never;
+        Insert: {
+          id?: string;
+          upload_id: string;
+          funcionario_id?: string | null;
+          empresa: string;
+          cadastro: string;
+          nome: string;
+          data_inicio: string;
+          data_fim: string;
+          status_revisao?: StatusRevisao;
+          revisado_por?: string | null;
+          revisado_em?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          funcionario_id?: string | null;
+          empresa?: string;
+          cadastro?: string;
+          nome?: string;
+          data_inicio?: string;
+          data_fim?: string;
+          status_revisao?: StatusRevisao;
+          revisado_por?: string | null;
+          revisado_em?: string | null;
+        };
         Relationships: [];
       };
       periodos_ferias: {
@@ -86,8 +141,22 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: never;
-        Update: never;
+        Insert: {
+          id?: string;
+          funcionario_id: string;
+          checklist_origem_id?: string | null;
+          data_inicio: string;
+          data_fim: string;
+          status?: StatusPeriodo;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          data_inicio?: string;
+          data_fim?: string;
+          status?: StatusPeriodo;
+          updated_at?: string;
+        };
         Relationships: [];
       };
       controle_acesso: {
@@ -102,8 +171,23 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: never;
-        Update: never;
+        Insert: {
+          id?: string;
+          periodo_ferias_id: string;
+          tipo_acao: TipoAcao;
+          data_programada: string;
+          status?: StatusControle;
+          supervisor_id?: string | null;
+          confirmado_em?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          status?: StatusControle;
+          supervisor_id?: string | null;
+          confirmado_em?: string | null;
+          updated_at?: string;
+        };
         Relationships: [];
       };
       alertas: {
@@ -129,7 +213,15 @@ export interface Database {
           descricao: string | null;
           data_hora: string;
         };
-        Insert: never;
+        Insert: {
+          id?: string;
+          usuario_id?: string | null;
+          tipo_evento: TipoEvento;
+          entidade_afetada?: string | null;
+          entidade_id?: string | null;
+          descricao?: string | null;
+          data_hora?: string;
+        };
         Update: never;
         Relationships: [];
       };
