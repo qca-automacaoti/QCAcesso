@@ -8,6 +8,7 @@ import { authRoutes } from './modules/auth/auth.routes';
 import { cookieSettings } from './modules/auth/auth.controller';
 import { AuthError } from './modules/auth/auth.types';
 import type { AuthService } from './modules/auth/auth.service';
+import { dashboardRoutes } from './modules/dashboard/dashboard.routes';
 
 export function createApp(config: EnvConfig, auth: AuthService) {
   const app = express();
@@ -32,6 +33,7 @@ export function createApp(config: EnvConfig, auth: AuthService) {
       .catch(() => res.status(503).json({ status: 'unavailable', database: 'unavailable' }));
   });
   app.use('/api/auth', authRoutes(auth, config));
+  app.use('/api/dashboard', dashboardRoutes(auth, config));
   app.use((_req, res) => { res.status(404).json({ error: { code: 'NAO_ENCONTRADO', message: 'Rota não encontrada.' } }); });
   const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     if (error instanceof AuthError) {

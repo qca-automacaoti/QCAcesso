@@ -1,5 +1,17 @@
-/**
- * Layout Principal da Aplicação (AppLayout.tsx)
- * Descrição: Estrutura base para telas autenticadas, agrupando a barra superior (Header),
- * o menu de navegação lateral (Sidebar) e a área de exibição das páginas filhas.
- */
+import { Outlet } from 'react-router-dom'
+import { Header } from './Header'
+import { Sidebar } from './Sidebar'
+
+export function AppLayout() {
+  return (
+    <div className="app-shell">
+      <Sidebar />
+      <div className="app-workspace">
+        <Header />
+        <main className="app-content">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  )
+}
