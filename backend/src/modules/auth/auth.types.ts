@@ -30,6 +30,7 @@ export class AuthError extends Error {
 export interface IdentitySession {
   signIn(email: string, senha: string): Promise<Usuario>;
   currentUser(): Promise<Usuario>;
+  accessToken(): Promise<string>;
   signOut(): Promise<void>;
 }
 export interface IdentityProvider {

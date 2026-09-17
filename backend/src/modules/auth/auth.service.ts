@@ -58,6 +58,16 @@ export class AuthService {
       throw error;
     }
   }
+  async accessToken(token: string | undefined): Promise<string> {
+    if (!token || !/^[A-Za-z0-9_-]{43}$/.test(token)) return this.unauthenticated();
+    const key = keyOf(token);
+    const session = this.sessions.get(key);
+    if (!session || session.expiresAt <= this.now()) {
+      this.sessions.delete(key);
+      return this.unauthenticated();
+    }
+    return session.identity.accessToken();
+  }
   async logout(token: string | undefined) {
     if (!token) return;
     const key = keyOf(token);

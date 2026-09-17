@@ -1,8 +1,9 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useAuth } from './auth.context'
+import { AppLayout } from '../../components/layout/AppLayout'
+import { DashboardPage } from '../dashboard/DashboardPage'
 import { LoginPage } from './LoginPage'
 import { ProtectedRoute } from './ProtectedRoute'
-import { SessionPage } from './SessionPage'
 
 export function AppRouter() {
   const { state, login, reload } = useAuth()
@@ -27,7 +28,9 @@ export function AppRouter() {
         ? <Navigate to={destino} replace />
         : <LoginPage onLogin={login} sessionMessage={state.message} />} />
       <Route element={<ProtectedRoute />}>
-        <Route path="/app" element={<SessionPage />} />
+        <Route path="/app" element={<AppLayout />}>
+          <Route index element={<DashboardPage />} />
+        </Route>
       </Route>
       <Route path="*" element={<Navigate to={signedIn ? '/app' : '/login'} replace />} />
     </Routes>

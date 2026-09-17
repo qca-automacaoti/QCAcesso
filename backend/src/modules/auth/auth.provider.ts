@@ -43,6 +43,11 @@ export function createIdentityProvider(config: EnvConfig): IdentityProvider {
           if (error || !data.user) authFailure(error);
           return loadProfile(data.user.id);
         },
+        async accessToken() {
+          const current = await client.auth.getSession();
+          if (current.error || !current.data.session) authFailure(current.error);
+          return current.data.session.access_token;
+        },
         async signOut() {
           const { error } = await client.auth.signOut({ scope: 'local' });
           if (error) throw error;
