@@ -10,6 +10,7 @@ import { AuthError } from './modules/auth/auth.types';
 import type { AuthService } from './modules/auth/auth.service';
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes';
 import { uploadRoutes } from './modules/upload/upload.routes';
+import { checklistRoutes } from './modules/checklist/checklist.routes';
 
 export function createApp(config: EnvConfig, auth: AuthService) {
   const app = express();
@@ -37,6 +38,7 @@ export function createApp(config: EnvConfig, auth: AuthService) {
   app.use('/api/auth', authRoutes(auth, config));
   app.use('/api/dashboard', dashboardRoutes(auth, config));
   app.use('/api/uploads', uploadRoutes(auth, config));
+  app.use('/api/checklist', checklistRoutes(auth, config));
   app.use((_req, res) => { res.status(404).json({ error: { code: 'NAO_ENCONTRADO', message: 'Rota não encontrada.' } }); });
   const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     if (error instanceof AuthError) {

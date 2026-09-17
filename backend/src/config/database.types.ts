@@ -227,7 +227,28 @@ export interface Database {
       };
     };
     Views: { [_ in never]: never };
-    Functions: { [_ in never]: never };
+    Functions: {
+      editar_checklist_revisao: {
+        Args: {
+          p_checklist_id: string;
+          p_empresa: string;
+          p_cadastro: string;
+          p_nome: string;
+          p_data_inicio: string;
+          p_data_fim: string;
+          p_supervisor_id: string | null;
+        };
+        Returns: Database['public']['Tables']['checklist_revisao']['Row'];
+      };
+      rejeitar_checklist_revisao: {
+        Args: { p_checklist_id: string };
+        Returns: Database['public']['Tables']['checklist_revisao']['Row'];
+      };
+      confirmar_checklist_revisao: {
+        Args: { p_checklist_id: string };
+        Returns: Database['public']['Tables']['checklist_revisao']['Row'];
+      };
+    };
     Enums: {
       perfil_usuario: PerfilUsuario;
       status_funcionario: StatusFuncionario;

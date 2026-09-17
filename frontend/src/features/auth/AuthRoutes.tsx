@@ -3,6 +3,7 @@ import { useAuth } from './auth.context'
 import { AppLayout } from '../../components/layout/AppLayout'
 import { DashboardPage } from '../dashboard/DashboardPage'
 import { UploadPage } from '../upload/UploadPage'
+import { ChecklistPage } from '../checklist/ChecklistPage'
 import { LoginPage } from './LoginPage'
 import { ProtectedRoute } from './ProtectedRoute'
 
@@ -32,6 +33,7 @@ export function AppRouter() {
         <Route path="/app" element={<AppLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="uploads" element={<UploadPage />} />
+          <Route path="checklist" element={<ChecklistPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to={signedIn ? '/app' : '/login'} replace />} />
