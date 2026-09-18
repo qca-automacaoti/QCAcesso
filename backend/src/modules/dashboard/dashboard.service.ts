@@ -224,7 +224,7 @@ export async function carregarDashboard(db: Db): Promise<DashboardResumo> {
     countRows(db, 'checklist_revisao', (query) => query.eq('status_revisao', 'CONFIRMADO')),
     countRows(db, 'checklist_revisao', (query) => query.eq('status_revisao', 'REJEITADO')),
     countRows(db, 'upload_planilhas', (query) => query.eq('status', 'ERRO')),
-    countRows(db, 'alertas', (query) => query.gte('data_envio', hoje)),
+    countRows(db, 'alertas', (query) => query.eq('status_envio', 'ENVIADO').gte('data_envio', hoje)),
     countRows(db, 'alertas', (query) => query.eq('status_envio', 'FALHA')),
     carregarProximasAcoes(db, hoje, seteDias),
     carregarAtividadeRecente(db),

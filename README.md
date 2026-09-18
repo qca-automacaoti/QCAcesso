@@ -184,6 +184,11 @@ cd QCAcesso
 | `SUPABASE_URL` | URL do projeto Supabase | `https://seu-projeto.supabase.co` |
 | `SUPABASE_PUBLISHABLE_KEY` | Chave pública/anon do Supabase | `sb_publishable_...` |
 | `SESSION_TTL_HOURS` | Tempo de expiração da sessão (em horas) | `8` |
+| `ALERTS_ENABLED` | Ativa as rotinas diárias de e-mail; exige credencial de serviço e SMTP | `false` |
+| `ALERTS_TIMEZONE` | Fuso dos horários dos jobs | `America/Sao_Paulo` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Credencial administrativa exclusiva do backend para os jobs | `sb_secret_...` |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE` | Servidor de envio de e-mail | `smtp.exemplo.com`, `587`, `false` |
+| `SMTP_USER`, `SMTP_PASS`, `ALERTS_FROM_EMAIL` | Credenciais e remetente dos alertas | `qcacesso@exemplo.com` |
 | `DATABASE_URL` | Connection String PostgreSQL (Prisma/Pooler) | `postgresql://user:pass@host:5432/db` |
 | `DATABASE_SSL_CA` | Caminho para o certificado SSL do banco | `./certs/supabase-prod-ca.crt` |
 
@@ -242,6 +247,8 @@ O projeto utiliza PostgreSQL hospedado no **Supabase**. As tabelas principais da
 - **CORS Estrito & Origens Protegidas**: Restrição de acessos apenas para origens confiáveis e validadas via cabeçalho `X-QCA-Request`.
 - **Cookies Seguros**: Cookies HTTP-Only com SameSite configurado para transporte seguro de credenciais.
 - **Rastreabilidade**: Todas as ações administrativas e operacionais geram entradas na tabela de auditoria (`logs_atividade`).
+- **Jobs de alertas**: Com `ALERTS_ENABLED=true`, o backend executa uma verificação ao iniciar e diariamente às 08:00 (fuso configurado), envia lembretes na véspera e escala ações vencidas para o supervisor e perfis de Administração/RH. Os envios são idempotentes por ação, destinatário e dia.
+- **Credenciais isoladas**: A `SUPABASE_SERVICE_ROLE_KEY` é usada somente pelos jobs backend; login e requests da aplicação continuam usando a chave pública.
 
 ---
 

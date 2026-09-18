@@ -8,6 +8,15 @@ export interface EnvConfig {
   SUPABASE_URL: string;
   SUPABASE_KEY: string;
   SESSION_TTL_MS: number;
+  ALERTS_ENABLED: boolean;
+  ALERTS_TIMEZONE: string;
+  SUPABASE_SERVICE_ROLE_KEY?: string;
+  SMTP_HOST?: string;
+  SMTP_PORT: number;
+  SMTP_SECURE: boolean;
+  SMTP_USER?: string;
+  SMTP_PASS?: string;
+  ALERTS_FROM_EMAIL?: string;
 }
 
 export function loadEnv(): EnvConfig {
@@ -39,8 +48,46 @@ export function loadEnv(): EnvConfig {
   const hours = Number(process.env.SESSION_TTL_HOURS || 8);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT inválida.');
   if (!Number.isFinite(hours) || hours < 0.01 || hours > 24) throw new Error('SESSION_TTL_HOURS deve ser maior ou igual a 0.01 e até 24.');
+
+  const alertsEnabledRaw = process.env.ALERTS_ENABLED || 'false';
+  if (!['true', 'false'].includes(alertsEnabledRaw.toLowerCase())) throw new Error('ALERTS_ENABLED deve ser true ou false.');
+  const alertsEnabled = alertsEnabledRaw.toLowerCase() === 'true';
+  const timezone = process.env.ALERTS_TIMEZONE || 'America/Sao_Paulo';
+  try { new Intl.DateTimeFormat('en-US', { timeZone: timezone }); }
+  catch { throw new Error('ALERTS_TIMEZONE inválido.'); }
+  const smtpPort = Number(process.env.SMTP_PORT || 587);
+  if (!Number.isInteger(smtpPort) || smtpPort < 1 || smtpPort > 65535) throw new Error('SMTP_PORT inválida.');
+  const smtpSecureRaw = process.env.SMTP_SECURE || (smtpPort === 465 ? 'true' : 'false');
+  if (!['true', 'false'].includes(smtpSecureRaw.toLowerCase())) throw new Error('SMTP_SECURE deve ser true ou false.');
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+  const fromEmail = process.env.ALERTS_FROM_EMAIL;
+  if (alertsEnabled) {
+    let serviceKeyRole: unknown;
+    if (serviceRoleKey?.split('.').length === 3) {
+      try { serviceKeyRole = JSON.parse(Buffer.from(serviceRoleKey.split('.')[1], 'base64url').toString()).role; }
+      catch { throw new Error('SUPABASE_SERVICE_ROLE_KEY inválida.'); }
+    }
+    if (!serviceRoleKey || /SUBSTITUA|SEU_PROJETO/.test(serviceRoleKey) || !(serviceRoleKey.startsWith('sb_secret_') || serviceKeyRole === 'service_role')) {
+      throw new Error('Configure uma SUPABASE_SERVICE_ROLE_KEY exclusiva para os jobs automáticos.');
+    }
+    if (!smtpHost || !smtpUser || !smtpPass || !fromEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fromEmail)) {
+      throw new Error('Configure SMTP_HOST, SMTP_USER, SMTP_PASS e ALERTS_FROM_EMAIL para ativar os alertas.');
+    }
+  }
   return {
     PORT: port, NODE_ENV: mode as EnvConfig['NODE_ENV'], FRONTEND_ORIGIN: origin,
     SUPABASE_URL: parsedUrl.origin, SUPABASE_KEY: key, SESSION_TTL_MS: hours * 60 * 60 * 1000,
+    ALERTS_ENABLED: alertsEnabled,
+    ALERTS_TIMEZONE: timezone,
+    SUPABASE_SERVICE_ROLE_KEY: serviceRoleKey,
+    SMTP_HOST: smtpHost,
+    SMTP_PORT: smtpPort,
+    SMTP_SECURE: smtpSecureRaw.toLowerCase() === 'true',
+    SMTP_USER: smtpUser,
+    SMTP_PASS: smtpPass,
+    ALERTS_FROM_EMAIL: fromEmail,
   };
 }

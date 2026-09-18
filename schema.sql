@@ -134,10 +134,16 @@ create table if not exists public.alertas (
   id uuid primary key default gen_random_uuid(),
   controle_acesso_id uuid not null references public.controle_acesso(id) on delete cascade,
   supervisor_id uuid references public.usuarios(id),
+  destinatario_id uuid references public.usuarios(id),
   tipo_alerta tipo_alerta not null,
+  chave_idempotencia text,
   data_envio timestamptz not null default now(),
   status_envio status_envio not null default 'ENVIADO'
 );
+
+alter table public.alertas add column if not exists destinatario_id uuid references public.usuarios(id);
+alter table public.alertas add column if not exists chave_idempotencia text;
+create unique index if not exists idx_alertas_chave_idempotencia on public.alertas(chave_idempotencia);
 
 create table if not exists public.logs_atividade (
   id uuid primary key default gen_random_uuid(),
@@ -619,6 +625,27 @@ create policy "autenticados podem ler controle_acesso" on public.controle_acesso
         )
     )
   );
+
+drop policy if exists "autenticados podem ler alertas" on public.alertas;
+create policy "autenticados podem ler alertas" on public.alertas
+  for select using (
+    auth.role() = 'authenticated'
+    and exists (
+      select 1 from public.usuarios as u
+      where u.id = auth.uid() and u.ativo = true
+        and (
+          u.perfil in ('ADMIN'::public.perfil_usuario, 'RH'::public.perfil_usuario, 'AUDITOR'::public.perfil_usuario)
+          or alertas.supervisor_id = u.id
+          or alertas.destinatario_id = u.id
+        )
+    )
+  );
+revoke insert, update, delete on public.alertas from anon, authenticated;
+grant select on public.alertas to authenticated;
+grant select, insert, update on public.alertas to service_role;
+grant select, update on public.controle_acesso to service_role;
+grant select on public.periodos_ferias, public.funcionarios, public.usuarios to service_role;
+grant insert on public.logs_atividade to service_role;
 
 drop policy if exists "autenticados podem inserir funcionarios" on public.funcionarios;
 create policy "autenticados podem inserir funcionarios" on public.funcionarios

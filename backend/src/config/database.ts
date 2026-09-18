@@ -12,3 +12,12 @@ export function createDatabase(config: EnvConfig, accessToken?: string) {
     },
   });
 }
+
+export function createAdminDatabase(config: EnvConfig) {
+  if (!config.SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY ausente para os jobs de alerta.');
+  // Credencial administrativa isolada dos requests de usuários e usada somente pelos jobs internos.
+  return createClient<Database>(config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(12_000) }) },
+  });
+}

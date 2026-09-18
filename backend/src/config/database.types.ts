@@ -195,12 +195,23 @@ export interface Database {
           id: string;
           controle_acesso_id: string;
           supervisor_id: string | null;
+          destinatario_id: string | null;
           tipo_alerta: TipoAlerta;
+          chave_idempotencia: string | null;
           data_envio: string;
           status_envio: StatusEnvio;
         };
-        Insert: never;
-        Update: never;
+        Insert: {
+          id?: string;
+          controle_acesso_id: string;
+          supervisor_id?: string | null;
+          destinatario_id?: string | null;
+          tipo_alerta: TipoAlerta;
+          chave_idempotencia?: string | null;
+          data_envio?: string;
+          status_envio?: StatusEnvio;
+        };
+        Update: { status_envio?: StatusEnvio };
         Relationships: [];
       };
       logs_atividade: {
