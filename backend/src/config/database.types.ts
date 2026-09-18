@@ -248,6 +248,10 @@ export interface Database {
         Args: { p_checklist_id: string };
         Returns: Database['public']['Tables']['checklist_revisao']['Row'];
       };
+      confirmar_controle_acesso: {
+        Args: { p_controle_id: string };
+        Returns: Database['public']['Tables']['controle_acesso']['Row'];
+      };
     };
     Enums: {
       perfil_usuario: PerfilUsuario;
