@@ -184,9 +184,10 @@ async function carregarAtividadeRecente(db: Db): Promise<DashboardEvento[]> {
 
 export async function carregarDashboard(db: Db): Promise<DashboardResumo> {
   const agora = new Date();
-  const hoje = isoDate(agora);
-  const seteDias = isoDate(addDays(agora, 7));
-  const inicioMes = isoDate(startOfMonth(agora));
+  const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(agora);
+  const hojeBase = new Date(`${hoje}T00:00:00.000Z`);
+  const seteDias = isoDate(addDays(hojeBase, 7));
+  const inicioMes = isoDate(startOfMonth(hojeBase));
 
   const [
     funcionariosTotal,
@@ -212,9 +213,12 @@ export async function carregarDashboard(db: Db): Promise<DashboardResumo> {
     countRows(db, 'funcionarios', (query) => query.eq('status_atual', 'BLOQUEADO')),
     countRows(db, 'periodos_ferias', (query) => query.eq('status', 'CONFIRMADO').lte('data_inicio', hoje).gte('data_fim', hoje)),
     countRows(db, 'periodos_ferias', (query) => query.eq('status', 'CONFIRMADO').gte('data_inicio', hoje).lte('data_inicio', seteDias)),
-    countRows(db, 'controle_acesso', (query) => query.eq('tipo_acao', 'BLOQUEIO').eq('status', 'PENDENTE')),
-    countRows(db, 'controle_acesso', (query) => query.eq('tipo_acao', 'DESBLOQUEIO').eq('status', 'PENDENTE')),
-    countRows(db, 'controle_acesso', (query) => query.eq('status', 'ATRASADO')),
+    countRows(db, 'controle_acesso', (query) => query.eq('tipo_acao', 'BLOQUEIO').eq('status', 'PENDENTE').gte('data_programada', hoje)),
+    countRows(db, 'controle_acesso', (query) => query.eq('tipo_acao', 'DESBLOQUEIO').eq('status', 'PENDENTE').gte('data_programada', hoje)),
+    Promise.all([
+      countRows(db, 'controle_acesso', (query) => query.eq('status', 'ATRASADO')),
+      countRows(db, 'controle_acesso', (query) => query.eq('status', 'PENDENTE').lt('data_programada', hoje)),
+    ]).then(([marcados, vencidos]) => marcados + vencidos),
     countRows(db, 'controle_acesso', (query) => query.eq('status', 'CONFIRMADO').gte('confirmado_em', inicioMes)),
     countRows(db, 'checklist_revisao', (query) => query.eq('status_revisao', 'PENDENTE')),
     countRows(db, 'checklist_revisao', (query) => query.eq('status_revisao', 'CONFIRMADO')),

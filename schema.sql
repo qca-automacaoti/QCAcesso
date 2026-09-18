@@ -287,7 +287,7 @@ $$;
 create or replace function public.confirmar_checklist_revisao(p_checklist_id uuid)
 returns public.checklist_revisao
 language plpgsql
-security invoker
+security definer
 set search_path = ''
 as $$
 declare
@@ -413,12 +413,108 @@ begin
 end;
 $$;
 
+-- Confirma a execução operacional e atualiza funcionário, período e auditoria em uma transação.
+create or replace function public.confirmar_controle_acesso(p_controle_id uuid)
+returns public.controle_acesso
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_controle public.controle_acesso;
+  v_perfil public.perfil_usuario;
+  v_funcionario_id uuid;
+  v_nome text;
+  v_tipo_evento public.tipo_evento;
+begin
+  if auth.uid() is null then
+    raise exception using errcode = 'P0001', message = 'NAO_AUTENTICADO';
+  end if;
+  select u.perfil into v_perfil
+  from public.usuarios as u
+  where u.id = auth.uid() and u.ativo = true;
+  if not found then
+    raise exception using errcode = 'P0001', message = 'PERFIL_NAO_PERMITIDO';
+  end if;
+  if v_perfil not in (
+    'ADMIN'::public.perfil_usuario,
+    'RH'::public.perfil_usuario,
+    'SUPERVISOR'::public.perfil_usuario
+  ) then
+    raise exception using errcode = 'P0001', message = 'PERFIL_NAO_PERMITIDO';
+  end if;
+
+  select * into v_controle
+  from public.controle_acesso
+  where id = p_controle_id
+  for update;
+  if not found then
+    raise exception using errcode = 'P0001', message = 'ACAO_NAO_ENCONTRADA';
+  end if;
+  if v_perfil = 'SUPERVISOR'::public.perfil_usuario
+    and v_controle.supervisor_id is distinct from auth.uid() then
+    raise exception using errcode = 'P0001', message = 'ACAO_DE_OUTRO_SUPERVISOR';
+  end if;
+  if v_controle.status = 'CONFIRMADO'::public.status_controle then
+    return v_controle;
+  end if;
+  if v_controle.status not in ('PENDENTE'::public.status_controle, 'ATRASADO'::public.status_controle) then
+    raise exception using errcode = 'P0001', message = 'ACAO_JA_CONCLUIDA';
+  end if;
+  if v_controle.data_programada > (pg_catalog.now() at time zone 'America/Sao_Paulo')::date then
+    raise exception using errcode = 'P0001', message = 'ACAO_ANTES_DA_DATA';
+  end if;
+
+  select f.id, f.nome into v_funcionario_id, v_nome
+  from public.periodos_ferias as p
+  join public.funcionarios as f on f.id = p.funcionario_id
+  where p.id = v_controle.periodo_ferias_id
+    and p.status = 'CONFIRMADO'::public.status_periodo
+  for update of p, f;
+  if not found then
+    raise exception using errcode = 'P0001', message = 'PERIODO_INDISPONIVEL';
+  end if;
+
+  update public.controle_acesso
+  set status = 'CONFIRMADO'::public.status_controle,
+      confirmado_em = pg_catalog.now()
+  where id = v_controle.id
+  returning * into v_controle;
+
+  if v_controle.tipo_acao = 'BLOQUEIO'::public.tipo_acao then
+    update public.funcionarios set status_atual = 'BLOQUEADO'::public.status_funcionario where id = v_funcionario_id;
+    v_tipo_evento := 'CONFIRMACAO_BLOQUEIO'::public.tipo_evento;
+  else
+    update public.funcionarios set status_atual = 'ATIVO'::public.status_funcionario where id = v_funcionario_id;
+    update public.periodos_ferias
+    set status = 'CONCLUIDO'::public.status_periodo
+    where id = v_controle.periodo_ferias_id;
+    v_tipo_evento := 'CONFIRMACAO_DESBLOQUEIO'::public.tipo_evento;
+  end if;
+
+  insert into public.logs_atividade (usuario_id, tipo_evento, entidade_afetada, entidade_id, descricao)
+  values (
+    auth.uid(),
+    v_tipo_evento,
+    'controle_acesso',
+    v_controle.id,
+    case when v_controle.tipo_acao = 'BLOQUEIO'::public.tipo_acao
+      then 'Bloqueio de acesso confirmado para ' || v_nome || '.'
+      else 'Desbloqueio de acesso confirmado para ' || v_nome || '.'
+    end
+  );
+  return v_controle;
+end;
+$$;
+
 revoke all on function public.editar_checklist_revisao(uuid, text, text, text, date, date, uuid) from public;
 revoke all on function public.rejeitar_checklist_revisao(uuid) from public;
 revoke all on function public.confirmar_checklist_revisao(uuid) from public;
+revoke all on function public.confirmar_controle_acesso(uuid) from public;
 grant execute on function public.editar_checklist_revisao(uuid, text, text, text, date, date, uuid) to authenticated;
 grant execute on function public.rejeitar_checklist_revisao(uuid) to authenticated;
 grant execute on function public.confirmar_checklist_revisao(uuid) to authenticated;
+grant execute on function public.confirmar_controle_acesso(uuid) to authenticated;
 
 -- ---------------------------------------------------------
 -- Índices
@@ -512,7 +608,17 @@ create policy "autenticados podem ler funcionarios" on public.funcionarios
 
 drop policy if exists "autenticados podem ler controle_acesso" on public.controle_acesso;
 create policy "autenticados podem ler controle_acesso" on public.controle_acesso
-  for select using (auth.role() = 'authenticated');
+  for select using (
+    auth.role() = 'authenticated'
+    and exists (
+      select 1 from public.usuarios as u
+      where u.id = auth.uid() and u.ativo = true
+        and (
+          u.perfil in ('ADMIN'::public.perfil_usuario, 'RH'::public.perfil_usuario, 'AUDITOR'::public.perfil_usuario)
+          or (u.perfil = 'SUPERVISOR'::public.perfil_usuario and controle_acesso.supervisor_id = u.id)
+        )
+    )
+  );
 
 drop policy if exists "autenticados podem inserir funcionarios" on public.funcionarios;
 create policy "autenticados podem inserir funcionarios" on public.funcionarios
@@ -555,12 +661,8 @@ create policy "autenticados podem atualizar periodos" on public.periodos_ferias
   for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
 drop policy if exists "autenticados podem inserir controle_acesso" on public.controle_acesso;
-create policy "autenticados podem inserir controle_acesso" on public.controle_acesso
-  for insert with check (auth.role() = 'authenticated');
-
 drop policy if exists "autenticados podem atualizar controle_acesso" on public.controle_acesso;
-create policy "autenticados podem atualizar controle_acesso" on public.controle_acesso
-  for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+revoke insert, update, delete on public.controle_acesso from anon, authenticated;
 
 drop policy if exists "autenticados podem ler logs" on public.logs_atividade;
 create policy "autenticados podem ler logs" on public.logs_atividade

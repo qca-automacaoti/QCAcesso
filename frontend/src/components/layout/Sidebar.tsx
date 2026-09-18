@@ -4,6 +4,7 @@ const navItems = [
   { label: 'Dashboard', to: '/app' },
   { label: 'Uploads', to: '/app/uploads' },
   { label: 'Checklist', to: '/app/checklist' },
+  { label: 'Controle de acesso', to: '/app/controle-acesso' },
 ]
 
 export function Sidebar() {

@@ -4,6 +4,7 @@ import { AppLayout } from '../../components/layout/AppLayout'
 import { DashboardPage } from '../dashboard/DashboardPage'
 import { UploadPage } from '../upload/UploadPage'
 import { ChecklistPage } from '../checklist/ChecklistPage'
+import { ControleAcessoPage } from '../controle-acesso/ControleAcessoPage'
 import { LoginPage } from './LoginPage'
 import { ProtectedRoute } from './ProtectedRoute'
 
@@ -34,6 +35,7 @@ export function AppRouter() {
           <Route index element={<DashboardPage />} />
           <Route path="uploads" element={<UploadPage />} />
           <Route path="checklist" element={<ChecklistPage />} />
+          <Route path="controle-acesso" element={<ControleAcessoPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to={signedIn ? '/app' : '/login'} replace />} />
