@@ -12,13 +12,15 @@ import { dashboardRoutes } from './modules/dashboard/dashboard.routes';
 import { uploadRoutes } from './modules/upload/upload.routes';
 import { checklistRoutes } from './modules/checklist/checklist.routes';
 import { controleAcessoRoutes } from './modules/controle-acesso/controle-acesso.routes';
+import { usuariosRoutes } from './modules/usuarios/usuarios.routes';
+import { auditoriaRoutes } from './modules/auditoria/auditoria.routes';
 
 export function createApp(config: EnvConfig, auth: AuthService) {
   const app = express();
   app.disable('x-powered-by');
   app.use(helmet());
   app.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
-  app.use(cors({ origin: config.FRONTEND_ORIGIN, credentials: true, methods: ['GET', 'POST'] }));
+  app.use(cors({ origin: config.FRONTEND_ORIGIN, credentials: true, methods: ['GET', 'POST', 'PATCH'] }));
   app.use(cookieParser());
   app.use((req, _res, next) => {
     if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
@@ -41,6 +43,8 @@ export function createApp(config: EnvConfig, auth: AuthService) {
   app.use('/api/uploads', uploadRoutes(auth, config));
   app.use('/api/checklist', checklistRoutes(auth, config));
   app.use('/api/controle-acesso', controleAcessoRoutes(auth, config));
+  app.use('/api/usuarios', usuariosRoutes(auth, config));
+  app.use('/api/auditoria', auditoriaRoutes(auth, config));
   app.use((_req, res) => { res.status(404).json({ error: { code: 'NAO_ENCONTRADO', message: 'Rota não encontrada.' } }); });
   const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     if (error instanceof AuthError) {

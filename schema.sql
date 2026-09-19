@@ -522,6 +522,47 @@ grant execute on function public.rejeitar_checklist_revisao(uuid) to authenticat
 grant execute on function public.confirmar_checklist_revisao(uuid) to authenticated;
 grant execute on function public.confirmar_controle_acesso(uuid) to authenticated;
 
+-- Gestão administrativa de perfis: a alteração passa por uma função transacional
+-- para impedir que a própria conta ou o último administrador sejam removidos.
+create or replace function public.administrar_usuario(
+  p_usuario_id uuid,
+  p_perfil public.perfil_usuario,
+  p_ativo boolean
+)
+returns public.usuarios
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_atual public.usuarios;
+  v_resultado public.usuarios;
+  v_admins integer;
+begin
+  select * into v_atual from public.usuarios where id = auth.uid() and ativo = true for update;
+  if not found or v_atual.perfil <> 'ADMIN'::public.perfil_usuario then
+    raise exception using errcode = 'P0001', message = 'PERFIL_NAO_PERMITIDO';
+  end if;
+  select * into v_resultado from public.usuarios where id = p_usuario_id for update;
+  if not found then raise exception using errcode = 'P0001', message = 'USUARIO_NAO_ENCONTRADO'; end if;
+  if p_usuario_id = auth.uid() and (not p_ativo or p_perfil <> 'ADMIN'::public.perfil_usuario) then
+    raise exception using errcode = 'P0001', message = 'USUARIO_PROPRIO';
+  end if;
+  if v_resultado.perfil = 'ADMIN'::public.perfil_usuario and v_resultado.ativo = true
+    and (not p_ativo or p_perfil <> 'ADMIN'::public.perfil_usuario) then
+    select count(*) into v_admins from public.usuarios where perfil = 'ADMIN'::public.perfil_usuario and ativo = true;
+    if v_admins <= 1 then raise exception using errcode = 'P0001', message = 'ULTIMO_ADMIN'; end if;
+  end if;
+  update public.usuarios set perfil = p_perfil, ativo = p_ativo where id = p_usuario_id returning * into v_resultado;
+  insert into public.logs_atividade (usuario_id, tipo_evento, entidade_afetada, entidade_id, descricao)
+  values (auth.uid(), 'CONFIGURACAO_ALTERADA'::public.tipo_evento, 'usuarios', p_usuario_id,
+    'Perfil/status do usuário ' || v_resultado.email || ' atualizado.');
+  return v_resultado;
+end;
+$$;
+revoke all on function public.administrar_usuario(uuid, public.perfil_usuario, boolean) from public;
+grant execute on function public.administrar_usuario(uuid, public.perfil_usuario, boolean) to authenticated;
+
 -- ---------------------------------------------------------
 -- Índices
 -- ---------------------------------------------------------
@@ -607,6 +648,11 @@ alter table public.logs_atividade enable row level security;
 drop policy if exists "autenticados podem ler usuarios" on public.usuarios;
 create policy "autenticados podem ler usuarios" on public.usuarios
   for select using (auth.role() = 'authenticated');
+drop policy if exists "administradores podem atualizar usuarios" on public.usuarios;
+create policy "administradores podem atualizar usuarios" on public.usuarios
+  for update using (auth.role() = 'authenticated' and exists (select 1 from public.usuarios as atual where atual.id = auth.uid() and atual.ativo = true and atual.perfil = 'ADMIN'::public.perfil_usuario))
+  with check (auth.role() = 'authenticated');
+revoke update on public.usuarios from anon, authenticated;
 
 drop policy if exists "autenticados podem ler funcionarios" on public.funcionarios;
 create policy "autenticados podem ler funcionarios" on public.funcionarios
