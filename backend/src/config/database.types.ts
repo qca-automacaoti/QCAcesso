@@ -263,6 +263,10 @@ export interface Database {
         Args: { p_controle_id: string };
         Returns: Database['public']['Tables']['controle_acesso']['Row'];
       };
+      administrar_usuario: {
+        Args: { p_usuario_id: string; p_perfil: PerfilUsuario; p_ativo: boolean };
+        Returns: Database['public']['Tables']['usuarios']['Row'];
+      };
     };
     Enums: {
       perfil_usuario: PerfilUsuario;
