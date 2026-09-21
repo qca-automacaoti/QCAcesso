@@ -8,6 +8,6 @@ import { auditoriaController } from './auditoria.controller';
 export function auditoriaRoutes(auth: AuthService, config: EnvConfig) {
   const router = Router();
   const cookieName = cookieSettings(config).name;
-  router.get('/', requireAuth(auth, cookieName), requirePerfil('ADMIN', 'RH', 'AUDITOR'), auditoriaController(auth, config, cookieName).listar);
+  router.get('/', requireAuth(auth, cookieName), requirePerfil('ADMIN', 'SUPERVISOR', 'AUDITOR'), auditoriaController(auth, config, cookieName).listar);
   return router;
 }

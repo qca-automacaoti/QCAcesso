@@ -11,8 +11,8 @@ export function controleAcessoRoutes(auth: AuthService, config: EnvConfig) {
   const cookieName = cookieSettings(config).name;
   const controller = controleAcessoController(auth, config, cookieName);
 
-  router.get('/', requireAuth(auth, cookieName), requirePerfil(...PERFIS), controller.listar);
-  router.post('/:id/confirmar', requireAuth(auth, cookieName), requirePerfil('ADMIN', 'RH', 'SUPERVISOR'), controller.confirmar);
+  router.get('/', requireAuth(auth, cookieName), requirePerfil('ADMIN', 'SUPERVISOR'), controller.listar);
+  router.post('/:id/confirmar', requireAuth(auth, cookieName), requirePerfil('ADMIN', 'SUPERVISOR'), controller.confirmar);
 
   return router;
 }

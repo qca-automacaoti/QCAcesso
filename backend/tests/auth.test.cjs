@@ -14,6 +14,8 @@ const config = {
 const usuario = (email, perfil, ativo = true) => ({ id: email, nome: email.split('@')[0], email, perfil, ativo, created_at: '' });
 const contas = {
   'admin@qca.com.br': { senha: 'senha-admin', usuario: usuario('admin@qca.com.br', 'ADMIN') },
+  'rh@qca.com.br': { senha: 'senha-rh', usuario: usuario('rh@qca.com.br', 'RH') },
+  'supervisor@qca.com.br': { senha: 'senha-supervisor', usuario: usuario('supervisor@qca.com.br', 'SUPERVISOR') },
   'inativo@qca.com.br': { senha: 'senha-inativo', usuario: usuario('inativo@qca.com.br', 'RH', false) },
 };
 
@@ -109,3 +111,12 @@ test('requirePerfil bloqueia perfis não autorizados', () => {
   assert.equal(run('SUPERVISOR').status, 403);
   assert.equal(run(undefined).status, 401);
 });
+
+test('RH fica restrito a upload e checklist', () => withApi(async (call) => {
+  const login = await call('/auth/login', { body: { email: 'rh@qca.com.br', senha: 'senha-rh' } });
+  const cookie = sessionCookie(login).split(';')[0];
+  assert.equal((await call('/dashboard', { cookie })).status, 403);
+  assert.equal((await call('/controle-acesso', { cookie })).status, 403);
+  assert.equal((await call('/auditoria', { cookie })).status, 403);
+  assert.equal((await call('/usuarios', { cookie })).status, 403);
+}));

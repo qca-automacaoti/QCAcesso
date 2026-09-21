@@ -17,10 +17,14 @@ export interface EnvConfig {
   SMTP_USER?: string;
   SMTP_PASS?: string;
   ALERTS_FROM_EMAIL?: string;
+  GMAIL_USER?: string;
+  GMAIL_OAUTH_CLIENT_FILE?: string;
+  GMAIL_OAUTH_TOKEN_FILE?: string;
 }
 
 export function loadEnv(): EnvConfig {
   dotenv.config({ path: path.resolve(__dirname, '../../.env'), quiet: true });
+  dotenv.config({ path: path.resolve(__dirname, '../../.env.gmail'), quiet: true });
   const mode = process.env.NODE_ENV || 'development';
   if (!['development', 'test', 'production'].includes(mode)) throw new Error('NODE_ENV inválido.');
   const url = process.env.SUPABASE_URL || '';
@@ -64,6 +68,15 @@ export function loadEnv(): EnvConfig {
   const smtpUser = process.env.SMTP_USER;
   const smtpPass = process.env.SMTP_PASS;
   const fromEmail = process.env.ALERTS_FROM_EMAIL;
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailClientFile = process.env.GMAIL_OAUTH_CLIENT_FILE;
+  const gmailTokenFile = process.env.GMAIL_OAUTH_TOKEN_FILE;
+  const gmailFields = [gmailUser, gmailClientFile, gmailTokenFile].filter(Boolean).length;
+  if (gmailFields > 0 && gmailFields < 3) {
+    throw new Error('Configure GMAIL_USER, GMAIL_OAUTH_CLIENT_FILE e GMAIL_OAUTH_TOKEN_FILE juntos.');
+  }
+  const smtpConfigured = Boolean(smtpHost && smtpUser && smtpPass);
+  const gmailConfigured = gmailFields === 3;
   if (alertsEnabled) {
     let serviceKeyRole: unknown;
     if (serviceRoleKey?.split('.').length === 3) {
@@ -73,8 +86,8 @@ export function loadEnv(): EnvConfig {
     if (!serviceRoleKey || /SUBSTITUA|SEU_PROJETO/.test(serviceRoleKey) || !(serviceRoleKey.startsWith('sb_secret_') || serviceKeyRole === 'service_role')) {
       throw new Error('Configure uma SUPABASE_SERVICE_ROLE_KEY exclusiva para os jobs automáticos.');
     }
-    if (!smtpHost || !smtpUser || !smtpPass || !fromEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fromEmail)) {
-      throw new Error('Configure SMTP_HOST, SMTP_USER, SMTP_PASS e ALERTS_FROM_EMAIL para ativar os alertas.');
+    if (!fromEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fromEmail) || (!smtpConfigured && !gmailConfigured)) {
+      throw new Error('Configure SMTP ou GMAIL OAuth2 e ALERTS_FROM_EMAIL para ativar os alertas.');
     }
   }
   return {
@@ -89,5 +102,8 @@ export function loadEnv(): EnvConfig {
     SMTP_USER: smtpUser,
     SMTP_PASS: smtpPass,
     ALERTS_FROM_EMAIL: fromEmail,
+    GMAIL_USER: gmailUser,
+    GMAIL_OAUTH_CLIENT_FILE: gmailClientFile,
+    GMAIL_OAUTH_TOKEN_FILE: gmailTokenFile,
   };
 }

@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { ArrowRight, Eye, EyeOff } from 'lucide-react'
+import { Logo } from '../../components/Logo'
 
 interface LoginPageProps {
   onLogin: (email: string, senha: string) => Promise<void>
@@ -30,22 +32,19 @@ export function LoginPage({ onLogin, sessionMessage }: LoginPageProps) {
   return (
     <div className="login-page">
       <aside className="brand-panel" aria-label="QCAcesso">
-        <a className="brand brand-light" href="/login" aria-label="QCAcesso, página de login">
-          <span className="brand-mark">QCA<span className="brand-dot">.</span></span>
-          <span className="brand-name">ACESSO</span>
-        </a>
+        <Logo href="/login" label="QCAcesso, página de login" variant="light" />
         <div className="brand-message">
-          <span className="eyebrow">QUEIROZ CAVALCANTI ADVOCACIA</span>
+          <span className="eyebrow">CONTROLE DE ACESSO</span>
           <h1>Gestão de acessos<br />durante as férias.</h1>
           <p>Um ponto de acesso para a equipe responsável pelo bloqueio e desbloqueio de usuários.</p>
-          <div className="brand-rule" />
         </div>
-        <span className="brand-footer">Sistema de uso interno</span>
+        <span className="brand-footer">Sistema de uso interno · Acesso restrito</span>
+        <div className="brand-pattern" aria-hidden="true">{'IOIOIOIOIOIOIOIOIOIOIOIOIOIOIOIO'.repeat(2)}<br />{'OIOIOIOIOIOIOIOIOIOIOIOIOIOIOIOI'.repeat(2)}</div>
       </aside>
       <main className="login-main" id="conteudo">
         <div className="login-form-wrap">
           <div className="login-heading">
-            <span className="section-label">QCAcesso</span>
+            <span className="section-label">Área restrita</span>
             <h2>Entrar na sua conta</h2>
             <p>Informe seu e-mail e senha para continuar.</p>
           </div>
@@ -64,6 +63,7 @@ export function LoginPage({ onLogin, sessionMessage }: LoginPageProps) {
                   onChange={(event) => setSenha(event.target.value)} disabled={submitting} />
                 <button type="button" className="password-toggle" aria-controls="senha" aria-pressed={showPassword}
                   onClick={() => setShowPassword(!showPassword)} disabled={submitting}>
+                  {showPassword ? <EyeOff size={16} strokeWidth={1.75} aria-hidden="true" /> : <Eye size={16} strokeWidth={1.75} aria-hidden="true" />}
                   {showPassword ? 'Ocultar' : 'Mostrar'}
                 </button>
               </div>
@@ -71,7 +71,7 @@ export function LoginPage({ onLogin, sessionMessage }: LoginPageProps) {
             {(error || sessionMessage) && <p className="notice notice-error" role="alert">{error || sessionMessage}</p>}
             <button className="button button-primary" type="submit" disabled={submitting}>
               {submitting ? 'Entrando…' : 'Entrar'}
-              {!submitting && <span aria-hidden="true">→</span>}
+              {!submitting && <span aria-hidden="true"><ArrowRight size={18} strokeWidth={1.75} /></span>}
             </button>
           </form>
           <p className="login-help">Precisa de acesso? Entre em contato com o administrador do sistema.</p>

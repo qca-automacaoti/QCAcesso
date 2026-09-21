@@ -214,6 +214,12 @@ export interface Database {
         Update: { status_envio?: StatusEnvio };
         Relationships: [];
       };
+      configuracao_email: {
+        Row: { id: string; assunto: string; mensagem: string; atualizado_por: string | null; updated_at: string };
+        Insert: { id?: string; assunto: string; mensagem: string; atualizado_por?: string | null; updated_at?: string };
+        Update: { assunto?: string; mensagem?: string; atualizado_por?: string | null; updated_at?: string };
+        Relationships: [];
+      };
       logs_atividade: {
         Row: {
           id: string;
@@ -266,6 +272,10 @@ export interface Database {
       administrar_usuario: {
         Args: { p_usuario_id: string; p_perfil: PerfilUsuario; p_ativo: boolean };
         Returns: Database['public']['Tables']['usuarios']['Row'];
+      };
+      salvar_configuracao_email: {
+        Args: { p_assunto: string; p_mensagem: string };
+        Returns: Database['public']['Tables']['configuracao_email']['Row'];
       };
     };
     Enums: {

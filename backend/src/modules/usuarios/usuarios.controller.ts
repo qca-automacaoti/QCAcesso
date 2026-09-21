@@ -4,7 +4,7 @@ import { createDatabase } from '../../config/database';
 import type { PerfilUsuario, UsuarioAutenticado } from '../auth/auth.types';
 import { AuthError } from '../auth/auth.types';
 import type { AuthService } from '../auth/auth.service';
-import { atualizarUsuario, listarUsuarios } from './usuarios.service';
+import { atualizarUsuario, criarUsuario, listarUsuarios } from './usuarios.service';
 
 const perfis: PerfilUsuario[] = ['ADMIN', 'RH', 'SUPERVISOR', 'AUDITOR'];
 
@@ -29,5 +29,16 @@ export function usuariosController(auth: AuthService, config: EnvConfig, cookieN
       res.json({ item });
     })().catch(next);
   };
-  return { listar, atualizar };
+  const criar: RequestHandler = (req, res, next) => {
+    void (async () => {
+      const usuario = res.locals.usuario as UsuarioAutenticado;
+      const perfil = String(req.body?.perfil ?? '').toUpperCase() as PerfilUsuario;
+      const nome = String(req.body?.nome ?? '');
+      const email = String(req.body?.email ?? '');
+      const senha = String(req.body?.senha ?? '');
+      if (!perfis.includes(perfil)) throw new AuthError(400, 'DADOS_INVALIDOS', 'Informe um perfil válido.');
+      res.status(201).json({ item: await criarUsuario(config, usuario, { nome, email, senha, perfil }) });
+    })().catch(next);
+  };
+  return { listar, atualizar, criar };
 }

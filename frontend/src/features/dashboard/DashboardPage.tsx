@@ -49,6 +49,8 @@ export function DashboardPage() {
 
   useEffect(() => {
     const controller = new AbortController()
+    // A chamada inicia a sincronização assíncrona dos indicadores ao montar a página.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void carregar(controller.signal)
     return () => controller.abort()
   }, [])
@@ -94,7 +96,8 @@ export function DashboardPage() {
       </div>
 
       <div className="dashboard-grid">
-        <section className="dashboard-panel dashboard-panel-wide" aria-labelledby="acoes-title">
+        <div className="dashboard-column">
+        <section className="dashboard-panel" aria-labelledby="acoes-title">
           <div className="panel-header">
             <div>
               <h2 id="acoes-title">Próximas ações</h2>
@@ -121,6 +124,28 @@ export function DashboardPage() {
           ) : <p className="empty-state">Nenhuma ação programada para a próxima semana.</p>}
         </section>
 
+        <section className="dashboard-panel" aria-labelledby="atividade-title">
+          <div className="panel-header">
+            <div>
+              <h2 id="atividade-title">Atividade recente</h2>
+              <p>Últimos eventos registrados.</p>
+            </div>
+          </div>
+          {resumo.atividadeRecente.length > 0 ? (
+            <div className="timeline">
+              {resumo.atividadeRecente.map((evento) => (
+                <article key={evento.id}>
+                  <strong>{tipoLabel(evento.tipo)}</strong>
+                  <p>{evento.descricao}</p>
+                  <time dateTime={evento.dataHora}>{formatDateTime(evento.dataHora)}</time>
+                </article>
+              ))}
+            </div>
+          ) : <p className="empty-state">Nenhuma atividade registrada ainda.</p>}
+        </section>
+        </div>
+
+        <div className="dashboard-column">
         <section className="dashboard-panel" aria-labelledby="ferias-title">
           <div className="panel-header">
             <div>
@@ -152,26 +177,6 @@ export function DashboardPage() {
           </dl>
         </section>
 
-        <section className="dashboard-panel" aria-labelledby="atividade-title">
-          <div className="panel-header">
-            <div>
-              <h2 id="atividade-title">Atividade recente</h2>
-              <p>Últimos eventos registrados.</p>
-            </div>
-          </div>
-          {resumo.atividadeRecente.length > 0 ? (
-            <div className="timeline">
-              {resumo.atividadeRecente.map((evento) => (
-                <article key={evento.id}>
-                  <strong>{tipoLabel(evento.tipo)}</strong>
-                  <p>{evento.descricao}</p>
-                  <time dateTime={evento.dataHora}>{formatDateTime(evento.dataHora)}</time>
-                </article>
-              ))}
-            </div>
-          ) : <p className="empty-state">Nenhuma atividade registrada ainda.</p>}
-        </section>
-
         <section className="dashboard-panel" aria-labelledby="controle-title">
           <div className="panel-header">
             <div>
@@ -186,6 +191,7 @@ export function DashboardPage() {
             <div><dt>Gerado em</dt><dd>{formatDateTime(resumo.geradoEm)}</dd></div>
           </dl>
         </section>
+        </div>
       </div>
     </section>
   )
