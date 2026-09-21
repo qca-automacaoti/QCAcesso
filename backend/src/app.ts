@@ -3,6 +3,8 @@ import type { ErrorRequestHandler } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import { rateLimit } from 'express-rate-limit';
+import { randomUUID } from 'node:crypto';
 import type { EnvConfig } from './config/env';
 import { authRoutes } from './modules/auth/auth.routes';
 import { cookieSettings } from './modules/auth/auth.controller';
@@ -14,14 +16,23 @@ import { checklistRoutes } from './modules/checklist/checklist.routes';
 import { controleAcessoRoutes } from './modules/controle-acesso/controle-acesso.routes';
 import { usuariosRoutes } from './modules/usuarios/usuarios.routes';
 import { auditoriaRoutes } from './modules/auditoria/auditoria.routes';
+import { configuracoesRoutes } from './modules/configuracoes/configuracoes.routes';
 
 export function createApp(config: EnvConfig, auth: AuthService) {
   const app = express();
   app.disable('x-powered-by');
   app.use(helmet());
-  app.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
+  app.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); res.set('X-Request-Id', randomUUID()); next(); });
   app.use(cors({ origin: config.FRONTEND_ORIGIN, credentials: true, methods: ['GET', 'POST', 'PATCH'] }));
   app.use(cookieParser());
+  app.use('/api', rateLimit({
+    windowMs: 60 * 1000,
+    limit: 180,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    skip: (req) => req.path === '/health' || req.path === '/health/ready',
+    message: { error: { code: 'MUITAS_REQUISICOES', message: 'Muitas requisições. Aguarde um momento e tente novamente.' } },
+  }));
   app.use((req, _res, next) => {
     if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
       const uploadMultipart = req.method === 'POST' && req.path === '/api/uploads' && Boolean(req.is('multipart/form-data'));
@@ -38,6 +49,10 @@ export function createApp(config: EnvConfig, auth: AuthService) {
     auth.health().then(() => res.json({ status: 'ok', database: 'connected' }))
       .catch(() => res.status(503).json({ status: 'unavailable', database: 'unavailable' }));
   });
+  app.get('/api/health/ready', (_req, res) => {
+    auth.health().then(() => res.json({ status: 'ready', database: 'connected', alerts: config.ALERTS_ENABLED ? 'enabled' : 'disabled' }))
+      .catch(() => res.status(503).json({ status: 'not_ready', database: 'unavailable', alerts: config.ALERTS_ENABLED ? 'enabled' : 'disabled' }));
+  });
   app.use('/api/auth', authRoutes(auth, config));
   app.use('/api/dashboard', dashboardRoutes(auth, config));
   app.use('/api/uploads', uploadRoutes(auth, config));
@@ -45,23 +60,25 @@ export function createApp(config: EnvConfig, auth: AuthService) {
   app.use('/api/controle-acesso', controleAcessoRoutes(auth, config));
   app.use('/api/usuarios', usuariosRoutes(auth, config));
   app.use('/api/auditoria', auditoriaRoutes(auth, config));
+  app.use('/api/configuracoes', configuracoesRoutes(auth, config));
   app.use((_req, res) => { res.status(404).json({ error: { code: 'NAO_ENCONTRADO', message: 'Rota não encontrada.' } }); });
-  const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
+  const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
+    const requestId = res.getHeader('X-Request-Id');
     if (error instanceof AuthError) {
       if ([401, 403].includes(error.status) && error.code !== 'ORIGEM_NAO_PERMITIDA' && error.code !== 'PERFIL_NAO_PERMITIDO') {
         const cookie = cookieSettings(config);
         res.clearCookie(cookie.name, cookie.options);
       }
-      res.status(error.status).json({ error: { code: error.code, message: error.message } });
+      res.status(error.status).json({ error: { code: error.code, message: error.message }, requestId });
       return;
     }
     if (error?.type === 'entity.parse.failed' || error?.type === 'entity.too.large') {
-      res.status(400).json({ error: { code: 'DADOS_INVALIDOS', message: 'Corpo da requisição inválido.' } });
+      res.status(400).json({ error: { code: 'DADOS_INVALIDOS', message: 'Corpo da requisição inválido.' }, requestId });
       return;
     }
     // Não registrar objetos de erro do provedor: podem conter tokens ou credenciais.
-    console.error('Falha interna ao processar uma requisição.');
-    res.status(500).json({ error: { code: 'ERRO_INTERNO', message: 'Não foi possível concluir a solicitação. Tente novamente.' } });
+    console.error(`Falha interna ao processar ${req.method} ${req.path}. requestId=${String(requestId)}`);
+    res.status(500).json({ error: { code: 'ERRO_INTERNO', message: 'Não foi possível concluir a solicitação. Tente novamente.' }, requestId });
   };
   app.use(errorHandler);
   return app;

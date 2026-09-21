@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, TipoAcao, TipoAlerta } from '../../config/database.types';
 import type { createMailer } from '../../config/mailer';
-import { renderizarAlerta } from './email.templates';
+import { renderizarAlerta, type EmailTemplateConfig } from './email.templates';
 
 type Db = SupabaseClient<Database>;
 type Mailer = ReturnType<typeof createMailer>;
@@ -145,6 +145,12 @@ async function registrarEvento(db: Db, id: string, descricao: string) {
   });
 }
 
+async function buscarTemplateEmail(db: Db): Promise<EmailTemplateConfig | undefined> {
+  const { data, error } = await (db as any).from('configuracao_email').select('assunto,mensagem').eq('id', 'global').maybeSingle();
+  if (error) return undefined;
+  return data ? { assunto: data.assunto, mensagem: data.mensagem } : undefined;
+}
+
 async function enviarParaDestinatario(
   db: Db,
   mailer: Mailer,
@@ -154,6 +160,7 @@ async function enviarParaDestinatario(
   item: AlertaCompleto,
   supervisorId: string | null,
   destinatario: Destinatario,
+  template?: EmailTemplateConfig,
 ) {
   const chave = `${item.controle.id}:${tipoAlerta}:${hoje}:${destinatario.id ?? 'sem-destinatario'}`;
   const { data: reserva, error: reservaError } = await (db as any).from('alertas')
@@ -185,7 +192,7 @@ async function enviarParaDestinatario(
     dataInicio: item.periodo.data_inicio,
     dataFim: item.periodo.data_fim,
     urlControle: `${config.frontendOrigin}/app/controle-acesso`,
-  });
+  }, template);
 
   try {
     await mailer.sendMail({ from: config.fromEmail, to: destinatario.email, ...email });
@@ -215,6 +222,7 @@ async function enviarLembretes(
   const controles = await buscarControles(db, { tipo: tipoAcao, data: amanha });
   if (controles.length === 0) return;
   const { alertas, supervisorPorId } = await buscarDadosRelacionados(db, controles);
+  const template = await buscarTemplateEmail(db);
   const tipoAlerta: TipoAlerta = tipoAcao === 'BLOQUEIO' ? 'LEMBRETE_BLOQUEIO' : 'LEMBRETE_DESBLOQUEIO';
 
   for (const item of alertas) {
@@ -223,7 +231,7 @@ async function enviarLembretes(
     const destinatario: Destinatario = valido && supervisor
       ? { id: supervisor.id, nome: supervisor.nome, email: supervisor.email }
       : { id: null, nome: 'Responsável', email: null };
-    await enviarParaDestinatario(db, mailer, config, hoje, tipoAlerta, item, item.controle.supervisor_id, destinatario);
+    await enviarParaDestinatario(db, mailer, config, hoje, tipoAlerta, item, item.controle.supervisor_id, destinatario, template);
   }
 }
 
@@ -246,6 +254,7 @@ export async function escalarAtrasos(db: Db, mailer: Mailer, config: JobConfig, 
   const controles = await buscarControles(db, { status: 'ATRASADO', atrasadosAntesDe: hoje });
   if (controles.length === 0) return;
   const { alertas, supervisorPorId, gestores } = await buscarDadosRelacionados(db, controles);
+  const template = await buscarTemplateEmail(db);
   for (const item of alertas) {
     const supervisor = item.controle.supervisor_id ? supervisorPorId.get(item.controle.supervisor_id) : undefined;
     const destinatarios = new Map<string, Destinatario>();
@@ -258,7 +267,7 @@ export async function escalarAtrasos(db: Db, mailer: Mailer, config: JobConfig, 
     const alvos = destinatarios.size ? [...destinatarios.values()] : [{ id: null, nome: 'Gestor', email: null }];
     for (const destinatario of alvos) {
       await enviarParaDestinatario(
-        db, mailer, config, hoje, 'ESCALONAMENTO_ATRASO', item, item.controle.supervisor_id, destinatario,
+        db, mailer, config, hoje, 'ESCALONAMENTO_ATRASO', item, item.controle.supervisor_id, destinatario, template,
       );
     }
   }

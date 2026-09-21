@@ -9,8 +9,8 @@ export function checklistRoutes(auth: AuthService, config: EnvConfig) {
   const router = Router();
   const cookieName = cookieSettings(config).name;
   const controller = checklistController(auth, config, cookieName);
-  const autenticar = [requireAuth(auth, cookieName)];
-  const revisar = [requireAuth(auth, cookieName), requirePerfil('ADMIN', 'RH')];
+  const autenticar = [requireAuth(auth, cookieName), requirePerfil('ADMIN', 'RH', 'SUPERVISOR')];
+  const revisar = [requireAuth(auth, cookieName), requirePerfil('ADMIN', 'RH', 'SUPERVISOR')];
 
   router.get('/', ...autenticar, controller.listar);
   router.post('/:id/editar', ...revisar, controller.editar);

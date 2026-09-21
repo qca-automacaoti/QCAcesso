@@ -2,6 +2,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../config/database.types';
 import type { PerfilUsuario, UsuarioAutenticado } from '../auth/auth.types';
 import { AuthError } from '../auth/auth.types';
+import { createAdminDatabase } from '../../config/database';
+import type { EnvConfig } from '../../config/env';
 
 type Db = SupabaseClient<Database>;
 type UsuarioRow = Database['public']['Tables']['usuarios']['Row'];
@@ -16,6 +18,7 @@ export interface UsuarioAdminItem {
 }
 
 export interface UsuariosListagem { itens: UsuarioAdminItem[]; total: number }
+export interface NovoUsuarioInput { nome: string; email: string; senha: string; perfil: PerfilUsuario }
 
 const erroUsuarios = () => new AuthError(503, 'USUARIOS_INDISPONIVEIS', 'Não foi possível carregar a gestão de usuários.');
 
@@ -54,6 +57,30 @@ export async function atualizarUsuario(
   if (error) tratarErroRpc(String(error.message ?? ''));
   if (!data) throw erroUsuarios();
   return toItem(data as UsuarioRow);
+}
+
+export async function criarUsuario(config: EnvConfig, atual: UsuarioAutenticado, input: NovoUsuarioInput): Promise<UsuarioAdminItem> {
+  if (atual.perfil !== 'ADMIN') throw new AuthError(403, 'PERFIL_NAO_PERMITIDO', 'Somente Administração pode cadastrar usuários.');
+  const nome = input.nome.trim();
+  const email = input.email.trim().toLowerCase();
+  if (nome.length < 2 || nome.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || input.senha.length < 8 || input.senha.length > 128 || !['ADMIN', 'RH', 'SUPERVISOR', 'AUDITOR'].includes(input.perfil)) {
+    throw new AuthError(400, 'DADOS_INVALIDOS', 'Informe nome, e-mail, senha de no mínimo 8 caracteres e perfil válido.');
+  }
+  if (!config.SUPABASE_SERVICE_ROLE_KEY) throw new AuthError(503, 'CADASTRO_INDISPONIVEL', 'Configure a credencial administrativa do Supabase para cadastrar usuários.');
+  const admin = createAdminDatabase(config);
+  const { data, error } = await admin.auth.admin.createUser({ email, password: input.senha, email_confirm: true, user_metadata: { nome } });
+  if (error || !data.user) {
+    if (error?.message.toLowerCase().includes('already') || error?.message.toLowerCase().includes('registered')) throw new AuthError(409, 'EMAIL_JA_CADASTRADO', 'Já existe um usuário com este e-mail.');
+    throw new AuthError(503, 'CADASTRO_INDISPONIVEL', 'Não foi possível cadastrar o usuário.');
+  }
+  const id = data.user.id;
+  const { data: perfil, error: perfilError } = await (admin as any).from('usuarios').upsert({ id, nome, email, perfil: input.perfil, ativo: true }, { onConflict: 'id' }).select('id,nome,email,perfil,ativo,created_at').single();
+  if (perfilError || !perfil) {
+    await admin.auth.admin.deleteUser(id).catch(() => undefined);
+    throw new AuthError(503, 'CADASTRO_INDISPONIVEL', 'Usuário criado na autenticação, mas não foi possível concluir o perfil.');
+  }
+  await (admin as any).from('logs_atividade').insert({ usuario_id: atual.id, tipo_evento: 'CONFIGURACAO_ALTERADA', entidade_afetada: 'usuarios', entidade_id: id, descricao: `Usuário ${email} cadastrado com perfil ${input.perfil}.` });
+  return toItem(perfil as UsuarioRow);
 }
 
 function tratarErroRpc(message: string): never {

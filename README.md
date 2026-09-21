@@ -248,7 +248,12 @@ O projeto utiliza PostgreSQL hospedado no **Supabase**. As tabelas principais da
 - **Cookies Seguros**: Cookies HTTP-Only com SameSite configurado para transporte seguro de credenciais.
 - **Rastreabilidade**: Todas as ações administrativas e operacionais geram entradas na tabela de auditoria (`logs_atividade`).
 - **Jobs de alertas**: Com `ALERTS_ENABLED=true`, o backend executa uma verificação ao iniciar e diariamente às 08:00 (fuso configurado), envia lembretes na véspera e escala ações vencidas para o supervisor e perfis de Administração/RH. Os envios são idempotentes por ação, destinatário e dia.
+- **Template global de e-mail**: Administração e Supervisão acessam **Configurações** no sistema para editar assunto e mensagem, usando variáveis como `{{nome}}`, `{{dataProgramada}}` e `{{link}}`. A mesma tela permite enviar um e-mail de teste; o SMTP precisa estar configurado no backend.
 - **Credenciais isoladas**: A `SUPABASE_SERVICE_ROLE_KEY` é usada somente pelos jobs backend; login e requests da aplicação continuam usando a chave pública.
+- **Perfis operacionais**: Administração acessa e administra todo o sistema; Supervisor acessa todos os módulos operacionais; RH acessa somente Uploads e Checklist, incluindo edição, rejeição, confirmação e associação do supervisor responsável; Auditor consulta Dashboard e Auditoria.
+- **Cadastro de usuários**: Administração usa `/app/usuarios` para criar contas com senha inicial e definir o perfil. O cadastro exige `SUPABASE_SERVICE_ROLE_KEY` configurada no backend.
+- **Readiness para publicação**: `GET /api/health` confirma disponibilidade básica; `GET /api/health/ready` confirma que a API e o banco estão prontos e informa se os alertas estão habilitados.
+- **Validação local**: execute `npm run check` em `backend` e `frontend` antes de publicar. O comando do backend compila e executa os testes; o do frontend compila e executa o lint.
 
 ---
 

@@ -11,4 +11,7 @@ export const administracaoApi = {
   atualizar(id: string, perfil: PerfilUsuario, ativo: boolean) {
     return apiRequest<{ item: UsuarioAdmin }>(`/usuarios/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ perfil, ativo }) })
   },
+  criar(input: { nome: string; email: string; senha: string; perfil: PerfilUsuario }) {
+    return apiRequest<{ item: UsuarioAdmin }>('/usuarios', { method: 'POST', body: JSON.stringify(input) })
+  },
 }

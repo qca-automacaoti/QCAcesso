@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { FileSpreadsheet, UploadCloud } from 'lucide-react'
 
 interface UploadDropzoneProps {
   file: File | null
@@ -49,7 +50,7 @@ export function UploadDropzone({ file, disabled, onFileChange }: UploadDropzoneP
           selectFile(event.dataTransfer.files[0])
         }}
       >
-        <span className="upload-icon" aria-hidden="true">⇧</span>
+        <span className="upload-icon" aria-hidden="true">{file ? <FileSpreadsheet size={22} strokeWidth={1.5} /> : <UploadCloud size={22} strokeWidth={1.5} />}</span>
         <strong>{file ? file.name : 'Selecionar planilha de férias'}</strong>
         <small>{file ? `${(file.size / 1024).toFixed(1)} KB` : 'Arraste o arquivo aqui ou clique para escolher'}</small>
       </button>

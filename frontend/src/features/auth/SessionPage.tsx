@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from './auth.context'
 import { perfilLabels } from './auth.types'
+import { Logo } from '../../components/Logo'
 
 export function SessionPage() {
   const { state, logout } = useAuth()
@@ -17,10 +18,7 @@ export function SessionPage() {
   const { usuario } = state
   return (
     <main className="session-page">
-      <a className="brand" href="/app" aria-label="QCAcesso, início">
-        <span className="brand-mark">QCA<span className="brand-dot">.</span></span>
-        <span className="brand-name">ACESSO</span>
-      </a>
+      <Logo href="/app" label="QCAcesso, início" />
       <section className="session-content" aria-labelledby="session-title">
         <span className="section-label">MINHA CONTA</span>
         <h1 id="session-title">Bem-vindo, {usuario.nome}.</h1>

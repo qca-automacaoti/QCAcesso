@@ -141,6 +141,18 @@ create table if not exists public.alertas (
   status_envio status_envio not null default 'ENVIADO'
 );
 
+-- Template global usado pelos alertas automáticos e pelos testes de envio.
+create table if not exists public.configuracao_email (
+  id text primary key default 'global' check (id = 'global'),
+  assunto text not null,
+  mensagem text not null,
+  atualizado_por uuid references public.usuarios(id),
+  updated_at timestamptz not null default now()
+);
+insert into public.configuracao_email (id, assunto, mensagem)
+values ('global', 'QCAcesso | {{tipoAlerta}} - {{nome}}', E'Olá,\n\n{{chamada}}\n\nFuncionário: {{nome}}\nEmpresa: {{empresa}}\nCadastro: {{cadastro}}\n\nAcesse o QCAcesso: {{link}}')
+on conflict (id) do nothing;
+
 alter table public.alertas add column if not exists destinatario_id uuid references public.usuarios(id);
 alter table public.alertas add column if not exists chave_idempotencia text;
 create unique index if not exists idx_alertas_chave_idempotencia on public.alertas(chave_idempotencia);
@@ -182,7 +194,7 @@ begin
   if not exists (
     select 1 from public.usuarios as u
     where u.id = auth.uid() and u.ativo = true
-      and u.perfil in ('ADMIN'::public.perfil_usuario, 'RH'::public.perfil_usuario)
+      and u.perfil in ('ADMIN'::public.perfil_usuario, 'RH'::public.perfil_usuario, 'SUPERVISOR'::public.perfil_usuario)
   ) then
     raise exception using errcode = 'P0001', message = 'PERFIL_NAO_PERMITIDO';
   end if;
@@ -259,7 +271,7 @@ begin
   if not exists (
     select 1 from public.usuarios as u
     where u.id = auth.uid() and u.ativo = true
-      and u.perfil in ('ADMIN'::public.perfil_usuario, 'RH'::public.perfil_usuario)
+      and u.perfil in ('ADMIN'::public.perfil_usuario, 'RH'::public.perfil_usuario, 'SUPERVISOR'::public.perfil_usuario)
   ) then
     raise exception using errcode = 'P0001', message = 'PERFIL_NAO_PERMITIDO';
   end if;
@@ -310,7 +322,7 @@ begin
   if not exists (
     select 1 from public.usuarios as u
     where u.id = auth.uid() and u.ativo = true
-      and u.perfil in ('ADMIN'::public.perfil_usuario, 'RH'::public.perfil_usuario)
+      and u.perfil in ('ADMIN'::public.perfil_usuario, 'RH'::public.perfil_usuario, 'SUPERVISOR'::public.perfil_usuario)
   ) then
     raise exception using errcode = 'P0001', message = 'PERFIL_NAO_PERMITIDO';
   end if;
@@ -563,6 +575,33 @@ $$;
 revoke all on function public.administrar_usuario(uuid, public.perfil_usuario, boolean) from public;
 grant execute on function public.administrar_usuario(uuid, public.perfil_usuario, boolean) to authenticated;
 
+create or replace function public.salvar_configuracao_email(p_assunto text, p_mensagem text)
+returns public.configuracao_email
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_item public.configuracao_email;
+begin
+  if not exists (select 1 from public.usuarios where id = auth.uid() and ativo = true and perfil in ('ADMIN'::public.perfil_usuario, 'SUPERVISOR'::public.perfil_usuario)) then
+    raise exception using errcode = 'P0001', message = 'PERFIL_NAO_PERMITIDO';
+  end if;
+  if char_length(trim(p_assunto)) < 3 or char_length(trim(p_assunto)) > 180 or char_length(trim(p_mensagem)) < 10 or char_length(trim(p_mensagem)) > 10000 then
+    raise exception using errcode = 'P0001', message = 'DADOS_INVALIDOS';
+  end if;
+  insert into public.configuracao_email (id, assunto, mensagem, atualizado_por)
+  values ('global', trim(p_assunto), trim(p_mensagem), auth.uid())
+  on conflict (id) do update set assunto = excluded.assunto, mensagem = excluded.mensagem, atualizado_por = auth.uid(), updated_at = now()
+  returning * into v_item;
+  insert into public.logs_atividade (usuario_id, tipo_evento, entidade_afetada, descricao)
+  values (auth.uid(), 'CONFIGURACAO_ALTERADA'::public.tipo_evento, 'configuracao_email', 'Template global de e-mail atualizado.');
+  return v_item;
+end;
+$$;
+revoke all on function public.salvar_configuracao_email(text, text) from public;
+grant execute on function public.salvar_configuracao_email(text, text) to authenticated;
+
 -- ---------------------------------------------------------
 -- Índices
 -- ---------------------------------------------------------
@@ -644,6 +683,7 @@ alter table public.periodos_ferias enable row level security;
 alter table public.controle_acesso enable row level security;
 alter table public.alertas enable row level security;
 alter table public.logs_atividade enable row level security;
+alter table public.configuracao_email enable row level security;
 
 drop policy if exists "autenticados podem ler usuarios" on public.usuarios;
 create policy "autenticados podem ler usuarios" on public.usuarios
@@ -653,6 +693,13 @@ create policy "administradores podem atualizar usuarios" on public.usuarios
   for update using (auth.role() = 'authenticated' and exists (select 1 from public.usuarios as atual where atual.id = auth.uid() and atual.ativo = true and atual.perfil = 'ADMIN'::public.perfil_usuario))
   with check (auth.role() = 'authenticated');
 revoke update on public.usuarios from anon, authenticated;
+
+drop policy if exists "administradores podem ler configuracao email" on public.configuracao_email;
+drop policy if exists "administradores e supervisores podem ler configuracao email" on public.configuracao_email;
+create policy "administradores e supervisores podem ler configuracao email" on public.configuracao_email
+  for select using (auth.role() = 'authenticated' and exists (select 1 from public.usuarios where id = auth.uid() and ativo = true and perfil in ('ADMIN'::public.perfil_usuario, 'SUPERVISOR'::public.perfil_usuario)));
+revoke insert, update, delete on public.configuracao_email from anon, authenticated;
+grant select on public.configuracao_email to authenticated;
 
 drop policy if exists "autenticados podem ler funcionarios" on public.funcionarios;
 create policy "autenticados podem ler funcionarios" on public.funcionarios

@@ -10,7 +10,7 @@ export function uploadRoutes(auth: AuthService, config: EnvConfig) {
   const router = Router();
   const cookieName = cookieSettings(config).name;
   const controller = uploadController(auth, config, cookieName);
-  const autenticar = [requireAuth(auth, cookieName), requirePerfil(...PERFIS)];
+  const autenticar = [requireAuth(auth, cookieName), requirePerfil('ADMIN', 'RH', 'SUPERVISOR')];
 
   router.get('/', ...autenticar, controller.listar);
   router.post('/', ...autenticar, express.raw({ type: 'multipart/form-data', limit: '5mb' }), controller.importar);

@@ -32,6 +32,8 @@ export function UploadPage() {
 
   useEffect(() => {
     const controller = new AbortController()
+    // A chamada inicia a sincronização assíncrona do histórico ao montar a página.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void carregarUploads(controller.signal)
     return () => controller.abort()
   }, [])

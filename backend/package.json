@@ -8,12 +8,14 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "test:db": "node test-supabase.js",
+    "gmail:authorize": "node scripts/authorize-gmail.js",
     "criar-usuario": "node scripts/criar-usuario.js",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:pull": "prisma db pull",
     "prisma:studio": "prisma studio",
-    "test": "npm run build && node --test tests/*.test.cjs"
+    "test": "npm run build && node --test tests/*.test.cjs",
+    "check": "npm run build && node --test tests/*.test.cjs"
   },
   "keywords": [
     "qcacesso",
@@ -32,6 +34,7 @@
     "dotenv": "^17.4.2",
     "express": "^4.21.2",
     "express-rate-limit": "^8.7.0",
+    "googleapis": "^181.0.0",
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^3.0.3",

@@ -10,6 +10,6 @@ export function dashboardRoutes(auth: AuthService, config: EnvConfig) {
   const router = Router();
   const cookieName = cookieSettings(config).name;
   const controller = dashboardController(auth, config, cookieName);
-  router.get('/', requireAuth(auth, cookieName), requirePerfil(...PERFIS), controller.resumo);
+  router.get('/', requireAuth(auth, cookieName), requirePerfil('ADMIN', 'SUPERVISOR', 'AUDITOR'), controller.resumo);
   return router;
 }

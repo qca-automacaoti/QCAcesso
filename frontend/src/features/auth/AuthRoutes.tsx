@@ -7,6 +7,7 @@ import { ChecklistPage } from '../checklist/ChecklistPage'
 import { ControleAcessoPage } from '../controle-acesso/ControleAcessoPage'
 import { AuditoriaPage } from '../auditoria/AuditoriaPage'
 import { UsuariosPage } from '../administracao/UsuariosPage'
+import { ConfiguracoesPage } from '../configuracoes/ConfiguracoesPage'
 import { LoginPage } from './LoginPage'
 import { ProtectedRoute } from './ProtectedRoute'
 
@@ -26,7 +27,8 @@ export function AppRouter() {
   const signedIn = state.status === 'authenticated'
   // Após o login, volta para a página protegida que o usuário tentou abrir.
   const from = (location.state as { from?: string } | null)?.from
-  const destino = from?.startsWith('/') && !from.startsWith('//') && from !== '/login' ? from : '/app'
+  const destinoPadrao = signedIn && state.usuario.perfil === 'RH' ? '/app/uploads' : '/app'
+  const destino = from?.startsWith('/') && !from.startsWith('//') && from !== '/login' ? from : destinoPadrao
   return (
     <Routes>
       <Route path="/login" element={signedIn
@@ -34,12 +36,12 @@ export function AppRouter() {
         : <LoginPage onLogin={login} sessionMessage={state.message} />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/app" element={<AppLayout />}>
-          <Route index element={<DashboardPage />} />
-          <Route path="uploads" element={<UploadPage />} />
-          <Route path="checklist" element={<ChecklistPage />} />
-          <Route path="controle-acesso" element={<ControleAcessoPage />} />
-          <Route path="auditoria" element={<AuditoriaPage />} />
-          <Route path="usuarios" element={<UsuariosPage />} />
+          <Route element={<ProtectedRoute perfis={['ADMIN', 'SUPERVISOR', 'AUDITOR']} />}><Route index element={<DashboardPage />} /></Route>
+          <Route element={<ProtectedRoute perfis={['ADMIN', 'RH', 'SUPERVISOR']} />}><Route path="uploads" element={<UploadPage />} /><Route path="checklist" element={<ChecklistPage />} /></Route>
+          <Route element={<ProtectedRoute perfis={['ADMIN', 'SUPERVISOR']} />}><Route path="controle-acesso" element={<ControleAcessoPage />} /></Route>
+          <Route element={<ProtectedRoute perfis={['ADMIN', 'SUPERVISOR', 'AUDITOR']} />}><Route path="auditoria" element={<AuditoriaPage />} /></Route>
+          <Route element={<ProtectedRoute perfis={['ADMIN', 'SUPERVISOR']} />}><Route path="usuarios" element={<UsuariosPage />} /></Route>
+          <Route element={<ProtectedRoute perfis={['ADMIN', 'SUPERVISOR']} />}><Route path="configuracoes" element={<ConfiguracoesPage />} /></Route>
         </Route>
       </Route>
       <Route path="*" element={<Navigate to={signedIn ? '/app' : '/login'} replace />} />
