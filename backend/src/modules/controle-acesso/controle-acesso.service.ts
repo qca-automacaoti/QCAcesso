@@ -66,7 +66,7 @@ export async function listarControleAcesso(
     return query;
   };
 
-  let listQuery = criarQuery().order('data_programada', { ascending: true }).order('created_at', { ascending: true }).range(offset, offset + 79);
+  let listQuery = criarQuery().order('data_programada', { ascending: true }).order('created_at', { ascending: true }).range(offset, offset + 9);
   const [{ data, error, count }, resumo] = await Promise.all([
     listQuery,
     carregarResumo(db, usuario, hoje),

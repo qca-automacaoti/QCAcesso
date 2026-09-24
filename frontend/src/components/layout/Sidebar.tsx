@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { FileSpreadsheet, History, KeyRound, LayoutDashboard, ListChecks, Settings, Users } from 'lucide-react'
+import { FileSpreadsheet, History, KeyRound, LayoutDashboard, ListChecks, Settings, ShieldCheck, ShieldOff, Users } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../../features/auth/auth.context'
 import type { PerfilUsuario } from '../../features/auth/auth.types'
@@ -10,6 +10,8 @@ const navItems: Array<{ label: string; to: string; icon: LucideIcon; perfis: Per
   { label: 'Uploads', to: '/app/uploads', icon: FileSpreadsheet, perfis: ['ADMIN', 'RH', 'SUPERVISOR'] },
   { label: 'Checklist', to: '/app/checklist', icon: ListChecks, perfis: ['ADMIN', 'RH', 'SUPERVISOR'] },
   { label: 'Controle de acesso', to: '/app/controle-acesso', icon: KeyRound, perfis: ['ADMIN', 'SUPERVISOR'] },
+  { label: 'Confirmar bloqueios', to: '/app/controle-acesso/bloqueios', icon: ShieldOff, perfis: ['ADMIN', 'SUPERVISOR'] },
+  { label: 'Confirmar desbloqueios', to: '/app/controle-acesso/desbloqueios', icon: ShieldCheck, perfis: ['ADMIN', 'SUPERVISOR'] },
   { label: 'Auditoria', to: '/app/auditoria', icon: History, perfis: ['ADMIN', 'SUPERVISOR', 'AUDITOR'] },
   { label: 'Usuários', to: '/app/usuarios', icon: Users, perfis: ['ADMIN', 'SUPERVISOR'] },
   { label: 'Configurações', to: '/app/configuracoes', icon: Settings, perfis: ['ADMIN', 'SUPERVISOR'] },

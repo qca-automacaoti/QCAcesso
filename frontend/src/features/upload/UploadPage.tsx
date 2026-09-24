@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { UploadDropzone } from './UploadDropzone'
 import { uploadApi } from './upload.api'
 import type { UploadResultado, UploadResumo } from './upload.api'
+import { Pagination } from '../../components/Pagination'
 
 const dateTimeFormatter = new Intl.DateTimeFormat('pt-BR', {
   day: '2-digit',
@@ -9,20 +10,24 @@ const dateTimeFormatter = new Intl.DateTimeFormat('pt-BR', {
   hour: '2-digit',
   minute: '2-digit',
 })
+const PAGE_SIZE = 10
 
 export function UploadPage() {
   const [file, setFile] = useState<File | null>(null)
   const [uploads, setUploads] = useState<UploadResumo[]>([])
+  const [totalUploads, setTotalUploads] = useState(0)
+  const [page, setPage] = useState(0)
   const [resultado, setResultado] = useState<UploadResultado | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  async function carregarUploads(signal?: AbortSignal) {
+  async function carregarUploads(signal?: AbortSignal, offset = page * PAGE_SIZE) {
     setLoading(true)
     try {
-      const response = await uploadApi.listar(signal)
+      const response = await uploadApi.listar(offset, signal)
       setUploads(response.uploads)
+      setTotalUploads(response.total)
     } catch (cause) {
       if (!signal?.aborted) setError(cause instanceof Error ? cause.message : 'Não foi possível listar uploads.')
     } finally {
@@ -36,7 +41,9 @@ export function UploadPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void carregarUploads(controller.signal)
     return () => controller.abort()
-  }, [])
+    // carregarUploads usa o número da página atual para consultar o histórico.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page])
 
   async function handleSubmit() {
     if (!file || submitting) return
@@ -47,7 +54,8 @@ export function UploadPage() {
       const response = await uploadApi.importar(file)
       setResultado(response)
       setFile(null)
-      await carregarUploads()
+      setPage(0)
+      await carregarUploads(undefined, 0)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível importar a planilha.')
     } finally {
@@ -114,7 +122,7 @@ export function UploadPage() {
             </div>
           </div>
           <div className="upload-errors">
-            {resultado.erros.slice(0, 20).map((erro) => (
+            {resultado.erros.slice(0, 10).map((erro) => (
               <article key={`${erro.linha}-${erro.motivo}`}>
                 <strong>Linha {erro.linha}</strong>
                 <span>{erro.motivo}</span>
@@ -148,6 +156,7 @@ export function UploadPage() {
             ))}
           </div>
         ) : <p className="empty-state">Nenhuma importação registrada ainda.</p>}
+        <Pagination page={page} total={totalUploads} pageSize={PAGE_SIZE} label="Paginação do histórico de uploads" onPageChange={(nextPage) => { setLoading(true); setPage(nextPage) }} />
       </section>
     </section>
   )

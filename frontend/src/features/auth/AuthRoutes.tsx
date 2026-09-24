@@ -5,6 +5,8 @@ import { DashboardPage } from '../dashboard/DashboardPage'
 import { UploadPage } from '../upload/UploadPage'
 import { ChecklistPage } from '../checklist/ChecklistPage'
 import { ControleAcessoPage } from '../controle-acesso/ControleAcessoPage'
+import { ListaBloqueioPage } from '../controle-acesso/ListaBloqueioPage'
+import { ListaDesbloqueioPage } from '../controle-acesso/ListaDesbloqueioPage'
 import { AuditoriaPage } from '../auditoria/AuditoriaPage'
 import { UsuariosPage } from '../administracao/UsuariosPage'
 import { ConfiguracoesPage } from '../configuracoes/ConfiguracoesPage'
@@ -38,7 +40,11 @@ export function AppRouter() {
         <Route path="/app" element={<AppLayout />}>
           <Route element={<ProtectedRoute perfis={['ADMIN', 'SUPERVISOR', 'AUDITOR']} />}><Route index element={<DashboardPage />} /></Route>
           <Route element={<ProtectedRoute perfis={['ADMIN', 'RH', 'SUPERVISOR']} />}><Route path="uploads" element={<UploadPage />} /><Route path="checklist" element={<ChecklistPage />} /></Route>
-          <Route element={<ProtectedRoute perfis={['ADMIN', 'SUPERVISOR']} />}><Route path="controle-acesso" element={<ControleAcessoPage />} /></Route>
+          <Route element={<ProtectedRoute perfis={['ADMIN', 'SUPERVISOR']} />}>
+            <Route path="controle-acesso" element={<ControleAcessoPage />} />
+            <Route path="controle-acesso/bloqueios" element={<ListaBloqueioPage />} />
+            <Route path="controle-acesso/desbloqueios" element={<ListaDesbloqueioPage />} />
+          </Route>
           <Route element={<ProtectedRoute perfis={['ADMIN', 'SUPERVISOR', 'AUDITOR']} />}><Route path="auditoria" element={<AuditoriaPage />} /></Route>
           <Route element={<ProtectedRoute perfis={['ADMIN', 'SUPERVISOR']} />}><Route path="usuarios" element={<UsuariosPage />} /></Route>
           <Route element={<ProtectedRoute perfis={['ADMIN', 'SUPERVISOR']} />}><Route path="configuracoes" element={<ConfiguracoesPage />} /></Route>

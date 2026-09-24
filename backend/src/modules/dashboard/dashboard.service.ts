@@ -63,7 +63,9 @@ export interface DashboardResumo {
     falhas: number;
   };
   proximasAcoes: DashboardAcao[];
+  proximasAcoesTotal: number;
   atividadeRecente: DashboardEvento[];
+  atividadeTotal: number;
 }
 
 interface ControleRow {
@@ -93,6 +95,16 @@ interface LogAtividadeRow {
   tipo_evento: TipoEvento;
   descricao: string | null;
   data_hora: string;
+}
+
+interface AtividadeRecenteListagem {
+  itens: DashboardEvento[];
+  total: number;
+}
+
+interface ProximasAcoesListagem {
+  itens: DashboardAcao[];
+  total: number;
 }
 
 const erroDashboard = () =>
@@ -126,17 +138,17 @@ async function countRows(db: Db, table: TableName, build?: (query: any) => any) 
   return count ?? 0;
 }
 
-async function carregarProximasAcoes(db: Db, hoje: string, limite: string): Promise<DashboardAcao[]> {
-  const { data, error } = await db.from('controle_acesso')
-    .select('id,periodo_ferias_id,tipo_acao,data_programada,status')
+async function carregarProximasAcoes(db: Db, hoje: string, limite: string, offset = 0): Promise<ProximasAcoesListagem> {
+  const { data, count, error } = await db.from('controle_acesso')
+    .select('id,periodo_ferias_id,tipo_acao,data_programada,status', { count: 'exact' })
     .in('status', ['PENDENTE', 'ATRASADO'])
     .gte('data_programada', hoje)
     .lte('data_programada', limite)
     .order('data_programada', { ascending: true })
-    .limit(8);
+    .range(offset, offset + 9);
   if (error) throw erroDashboard();
   const controles = (data ?? []) as ControleRow[];
-  if (controles.length === 0) return [];
+  if (controles.length === 0) return { itens: [], total: count ?? 0 };
 
   const periodoIds = [...new Set(controles.map((item) => item.periodo_ferias_id))];
   const { data: periodosData, error: periodosError } = await db.from('periodos_ferias')
@@ -152,7 +164,8 @@ async function carregarProximasAcoes(db: Db, hoje: string, limite: string): Prom
   if (funcionariosError) throw erroDashboard();
   const funcionarios = new Map(((funcionariosData ?? []) as FuncionarioRow[]).map((funcionario) => [funcionario.id, funcionario]));
 
-  return controles.map((controle) => {
+  return {
+    itens: controles.map((controle) => {
     const periodo = periodos.get(controle.periodo_ferias_id);
     const funcionario = periodo ? funcionarios.get(periodo.funcionario_id) : undefined;
     return {
@@ -165,24 +178,29 @@ async function carregarProximasAcoes(db: Db, hoje: string, limite: string): Prom
       empresa: funcionario?.empresa ?? '-',
       cadastro: funcionario?.cadastro ?? '-',
     };
-  });
+    }),
+    total: count ?? 0,
+  };
 }
 
-async function carregarAtividadeRecente(db: Db): Promise<DashboardEvento[]> {
-  const { data, error } = await db.from('logs_atividade')
-    .select('id,tipo_evento,descricao,data_hora')
+async function carregarAtividadeRecente(db: Db, offset = 0): Promise<AtividadeRecenteListagem> {
+  const { data, count, error } = await db.from('logs_atividade')
+    .select('id,tipo_evento,descricao,data_hora', { count: 'exact' })
     .order('data_hora', { ascending: false })
-    .limit(6);
+    .range(offset, offset + 9);
   if (error) throw erroDashboard();
-  return ((data ?? []) as unknown as LogAtividadeRow[]).map((evento) => ({
-    id: evento.id,
-    tipo: evento.tipo_evento,
-    descricao: evento.descricao || 'Evento registrado no sistema.',
-    dataHora: evento.data_hora,
-  }));
+  return {
+    itens: ((data ?? []) as unknown as LogAtividadeRow[]).map((evento) => ({
+      id: evento.id,
+      tipo: evento.tipo_evento,
+      descricao: evento.descricao || 'Evento registrado no sistema.',
+      dataHora: evento.data_hora,
+    })),
+    total: count ?? 0,
+  };
 }
 
-export async function carregarDashboard(db: Db): Promise<DashboardResumo> {
+export async function carregarDashboard(db: Db, atividadeOffset = 0, acoesOffset = 0): Promise<DashboardResumo> {
   const agora = new Date();
   const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(agora);
   const hojeBase = new Date(`${hoje}T00:00:00.000Z`);
@@ -226,8 +244,8 @@ export async function carregarDashboard(db: Db): Promise<DashboardResumo> {
     countRows(db, 'upload_planilhas', (query) => query.eq('status', 'ERRO')),
     countRows(db, 'alertas', (query) => query.eq('status_envio', 'ENVIADO').gte('data_envio', hoje)),
     countRows(db, 'alertas', (query) => query.eq('status_envio', 'FALHA')),
-    carregarProximasAcoes(db, hoje, seteDias),
-    carregarAtividadeRecente(db),
+    carregarProximasAcoes(db, hoje, seteDias, acoesOffset),
+    carregarAtividadeRecente(db, atividadeOffset),
   ]);
 
   return {
@@ -266,7 +284,9 @@ export async function carregarDashboard(db: Db): Promise<DashboardResumo> {
     ferias: { funcionariosTotal, emFerias, bloqueados, periodosAtivos, proximos7Dias },
     revisao: { pendentes: revisaoPendentes, confirmados: revisaoConfirmados, rejeitados: revisaoRejeitados, uploadsComErro },
     alertas: { enviadosHoje: alertasHoje, falhas: alertasFalha },
-    proximasAcoes,
-    atividadeRecente,
+    proximasAcoes: proximasAcoes.itens,
+    proximasAcoesTotal: proximasAcoes.total,
+    atividadeRecente: atividadeRecente.itens,
+    atividadeTotal: atividadeRecente.total,
   };
 }

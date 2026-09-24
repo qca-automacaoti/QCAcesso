@@ -28,7 +28,7 @@ export interface UploadResumo {
 }
 
 export const uploadApi = {
-  listar: (signal?: AbortSignal) => apiRequest<{ uploads: UploadResumo[] }>('/uploads', { signal }),
+  listar: (offset = 0, signal?: AbortSignal) => apiRequest<{ uploads: UploadResumo[]; total: number }>(`/uploads?offset=${offset}`, { signal }),
   importar: (file: File, signal?: AbortSignal) => {
     const formData = new FormData()
     formData.append('arquivo', file)

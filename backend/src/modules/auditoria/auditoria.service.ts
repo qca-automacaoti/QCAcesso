@@ -19,7 +19,7 @@ const tipos: TipoEvento[] = ['UPLOAD', 'EDICAO_CHECKLIST', 'CONFIRMACAO_BLOQUEIO
 
 export async function listarAuditoria(db: Db, filtros: { tipo?: TipoEvento; busca?: string; inicio?: string; fim?: string; offset?: number } = {}): Promise<AuditoriaListagem> {
   let query = db.from('logs_atividade').select('id,usuario_id,tipo_evento,entidade_afetada,entidade_id,descricao,data_hora', { count: 'exact' })
-    .order('data_hora', { ascending: false }).range(filtros.offset ?? 0, (filtros.offset ?? 0) + 79);
+    .order('data_hora', { ascending: false }).range(filtros.offset ?? 0, (filtros.offset ?? 0) + 9);
   if (filtros.tipo) query = query.eq('tipo_evento', filtros.tipo);
   if (filtros.inicio) query = query.gte('data_hora', `${filtros.inicio}T00:00:00.000Z`);
   if (filtros.fim) query = query.lt('data_hora', `${filtros.fim}T00:00:00.000Z`);

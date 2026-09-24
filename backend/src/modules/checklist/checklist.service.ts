@@ -124,7 +124,7 @@ export async function listarChecklist(db: Db, status?: StatusRevisao, offset = 0
   let query = db.from('checklist_revisao')
     .select('id,upload_id,funcionario_id,empresa,cadastro,nome,data_inicio,data_fim,status_revisao,revisado_por,revisado_em,created_at', { count: 'exact' })
     .order('created_at', { ascending: false })
-    .range(offset, offset + 79);
+    .range(offset, offset + 9);
   if (status) query = query.eq('status_revisao', status);
   const { data, error, count } = await query;
   if (error) erroChecklist();
