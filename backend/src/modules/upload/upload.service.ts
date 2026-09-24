@@ -240,19 +240,24 @@ export async function importarPlanilha(db: Db, usuario: UsuarioAutenticado, file
   };
 }
 
-export async function listarUploads(db: Db): Promise<UploadResumo[]> {
-  const { data, error } = await (db.from('upload_planilhas') as any)
-    .select('id,nome_arquivo,data_upload,total_linhas,linhas_processadas,linhas_com_erro,status')
+export interface UploadListagem { itens: UploadResumo[]; total: number }
+
+export async function listarUploads(db: Db, offset = 0): Promise<UploadListagem> {
+  const { data, count, error } = await (db.from('upload_planilhas') as any)
+    .select('id,nome_arquivo,data_upload,total_linhas,linhas_processadas,linhas_com_erro,status', { count: 'exact' })
     .order('data_upload', { ascending: false })
-    .limit(12);
+    .range(offset, offset + 9);
   if (error) erroBanco();
-  return ((data ?? []) as Database['public']['Tables']['upload_planilhas']['Row'][]).map((upload) => ({
-    id: upload.id,
-    nomeArquivo: upload.nome_arquivo,
-    dataUpload: upload.data_upload,
-    totalLinhas: upload.total_linhas,
-    linhasProcessadas: upload.linhas_processadas,
-    linhasComErro: upload.linhas_com_erro,
-    status: upload.status,
-  }));
+  return {
+    itens: ((data ?? []) as Database['public']['Tables']['upload_planilhas']['Row'][]).map((upload) => ({
+      id: upload.id,
+      nomeArquivo: upload.nome_arquivo,
+      dataUpload: upload.data_upload,
+      totalLinhas: upload.total_linhas,
+      linhasProcessadas: upload.linhas_processadas,
+      linhasComErro: upload.linhas_com_erro,
+      status: upload.status,
+    })),
+    total: count ?? 0,
+  };
 }

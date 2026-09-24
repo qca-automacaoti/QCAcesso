@@ -319,8 +319,11 @@ select { cursor: pointer; }
 .checklist-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; }
 .checklist-actions .button { min-height: 36px; padding: 7px 12px; font-size: .8125rem; }
 .checklist-pagination { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--muted); font-size: .8125rem; }
-.checklist-pagination > div { display: flex; align-items: center; gap: 12px; }
+.pagination-controls, .pagination-pages { display: flex; align-items: center; gap: 6px; }
 .checklist-pagination .button { min-height: 36px; padding: 7px 14px; }
+.pagination-page { min-width: 34px; height: 34px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); color: var(--navy-800); font-size: .8125rem; font-weight: 600; }
+.pagination-page:hover { border-color: var(--navy-800); background: var(--navy-50); }
+.pagination-page-active, .pagination-page-active:hover { border-color: var(--navy-800); background: var(--navy-800); color: #fff; }
 .checklist-row-editing { grid-template-columns: 1fr; align-items: stretch; border-color: var(--navy-800); box-shadow: 0 0 0 3px rgba(20, 27, 77, .06); }
 .checklist-edit-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
 .checklist-edit-grid label { display: grid; gap: 6px; color: var(--ink); font-size: .75rem; font-weight: 600; }
@@ -408,7 +411,7 @@ select { cursor: pointer; }
   .checklist-row, .access-row, .user-row, .audit-row { grid-template-columns: 1fr; align-items: start; gap: 10px; }
   .audit-row time { text-align: left; }
   .checklist-actions, .access-row .checklist-actions { justify-content: flex-start; }
-  .checklist-pagination, .checklist-pagination > div { align-items: flex-start; flex-direction: column; }
+  .checklist-pagination, .pagination-controls { align-items: flex-start; flex-direction: column; }
   .checklist-edit-grid, .user-create-form, .config-grid { grid-template-columns: 1fr; }
   .access-toolbar { align-items: flex-start; flex-direction: column; }
   .admin-toolbar { align-items: stretch; flex-direction: column; }

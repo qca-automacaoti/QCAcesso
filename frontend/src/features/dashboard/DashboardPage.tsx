@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { IndicadorCard } from './IndicadorCard'
+import { Pagination } from '../../components/Pagination'
 import { dashboardApi } from './dashboard.api'
 import type { DashboardResumo } from './dashboard.api'
 
@@ -29,16 +30,25 @@ function tipoLabel(tipo: string) {
   return tipo.replaceAll('_', ' ').toLowerCase()
 }
 
+const PAGE_SIZE = 10
+
 export function DashboardPage() {
   const [resumo, setResumo] = useState<DashboardResumo | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [atividadePage, setAtividadePage] = useState(0)
+  const [acoesPage, setAcoesPage] = useState(0)
 
   async function carregar(signal?: AbortSignal) {
     setError('')
     setLoading(true)
     try {
-      setResumo(await dashboardApi.resumo(signal))
+      const response = await dashboardApi.resumo(atividadePage * PAGE_SIZE, acoesPage * PAGE_SIZE, signal)
+      const ultimaPaginaAtividade = Math.max(0, Math.ceil(response.atividadeTotal / PAGE_SIZE) - 1)
+      const ultimaPaginaAcoes = Math.max(0, Math.ceil(response.proximasAcoesTotal / PAGE_SIZE) - 1)
+      if (atividadePage > ultimaPaginaAtividade) { setAtividadePage(ultimaPaginaAtividade); return }
+      if (acoesPage > ultimaPaginaAcoes) { setAcoesPage(ultimaPaginaAcoes); return }
+      setResumo(response)
     } catch (cause) {
       if (signal?.aborted) return
       setError(cause instanceof Error ? cause.message : 'Não foi possível carregar o dashboard.')
@@ -53,7 +63,9 @@ export function DashboardPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void carregar(controller.signal)
     return () => controller.abort()
-  }, [])
+    // carregar usa o número da página atual para consultar as atividades recentes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [atividadePage, acoesPage])
 
   const revisaoTotal = useMemo(() => {
     if (!resumo) return 0
@@ -103,7 +115,7 @@ export function DashboardPage() {
               <h2 id="acoes-title">Próximas ações</h2>
               <p>Bloqueios e desbloqueios programados para os próximos 7 dias.</p>
             </div>
-            <span>{resumo.proximasAcoes.length} itens</span>
+            <span>{resumo.proximasAcoesTotal} itens</span>
           </div>
           {resumo.proximasAcoes.length > 0 ? (
             <div className="action-list">
@@ -122,6 +134,7 @@ export function DashboardPage() {
               ))}
             </div>
           ) : <p className="empty-state">Nenhuma ação programada para a próxima semana.</p>}
+          <Pagination page={acoesPage} total={resumo.proximasAcoesTotal} pageSize={PAGE_SIZE} label="Paginação das próximas ações" onPageChange={(nextPage) => { setLoading(true); setAcoesPage(nextPage) }} />
         </section>
 
         <section className="dashboard-panel" aria-labelledby="atividade-title">
@@ -142,6 +155,7 @@ export function DashboardPage() {
               ))}
             </div>
           ) : <p className="empty-state">Nenhuma atividade registrada ainda.</p>}
+          <Pagination page={atividadePage} total={resumo.atividadeTotal} pageSize={PAGE_SIZE} label="Paginação das atividades recentes" onPageChange={(nextPage) => { setLoading(true); setAtividadePage(nextPage) }} />
         </section>
         </div>
 

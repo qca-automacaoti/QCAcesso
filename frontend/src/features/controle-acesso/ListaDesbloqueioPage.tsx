@@ -1,5 +1,6 @@
-/**
- * Página de Desbloqueios de Acesso (ListaDesbloqueioPage.tsx)
- * Descrição: Tela dedicada ao acompanhamento e execução da liberação de acessos
- * para funcionários que estão retornando às atividades após o término das férias.
- */
+import { ControleAcessoPage } from './ControleAcessoPage'
+
+/** Lista exclusiva para confirmação de desbloqueios já efetuados. */
+export function ListaDesbloqueioPage() {
+  return <ControleAcessoPage tipo="DESBLOQUEIO" />
+}

@@ -53,9 +53,11 @@ export interface DashboardResumo {
     falhas: number
   }
   proximasAcoes: DashboardAcao[]
+  proximasAcoesTotal: number
   atividadeRecente: DashboardEvento[]
+  atividadeTotal: number
 }
 
 export const dashboardApi = {
-  resumo: (signal?: AbortSignal) => apiRequest<DashboardResumo>('/dashboard', { signal }),
+  resumo: (atividadeOffset = 0, acoesOffset = 0, signal?: AbortSignal) => apiRequest<DashboardResumo>(`/dashboard?atividadeOffset=${atividadeOffset}&acoesOffset=${acoesOffset}`, { signal }),
 }

@@ -28,7 +28,7 @@ function toItem(row: UsuarioRow): UsuarioAdminItem {
 
 export async function listarUsuarios(db: Db, busca = '', offset = 0): Promise<UsuariosListagem> {
   let query = db.from('usuarios').select('id,nome,email,perfil,ativo,created_at', { count: 'exact' })
-    .order('nome', { ascending: true }).range(offset, offset + 79);
+    .order('nome', { ascending: true }).range(offset, offset + 9);
   const termo = busca.trim().replace(/[%_,().]/g, ' ');
   if (termo) query = query.or(`nome.ilike.%${termo}%,email.ilike.%${termo}%`);
   const { data, count, error } = await query;

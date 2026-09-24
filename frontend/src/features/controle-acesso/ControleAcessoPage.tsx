@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../auth/auth.context'
 import { controleAcessoApi } from './controle-acesso.api'
 import type { ControleAcessoItem, ControleAcessoResumo, ControleStatus, ControleTipo } from './controle-acesso.api'
+import { Pagination } from '../../components/Pagination'
 
 const filtrosStatus: Array<{ label: string; value?: ControleStatus }> = [
   { label: 'Todas' },
@@ -10,8 +11,12 @@ const filtrosStatus: Array<{ label: string; value?: ControleStatus }> = [
   { label: 'Confirmadas', value: 'CONFIRMADO' },
   { label: 'Canceladas', value: 'CANCELADO' },
 ]
-const PAGE_SIZE = 80
+const PAGE_SIZE = 10
 const resumoInicial: ControleAcessoResumo = { pendentes: 0, atrasados: 0, confirmados: 0, cancelados: 0 }
+
+interface ControleAcessoPageProps {
+  tipo?: ControleTipo
+}
 
 function formatarData(value: string) {
   return new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(`${value}T12:00:00.000Z`))
@@ -63,9 +68,9 @@ function ControleRow({ item, podeConfirmar, ocupado, onConfirmar }: {
   )
 }
 
-export function ControleAcessoPage() {
+export function ControleAcessoPage({ tipo: tipoFixo }: ControleAcessoPageProps = {}) {
   const [status, setStatus] = useState<ControleStatus | undefined>()
-  const [tipo, setTipo] = useState<ControleTipo | undefined>()
+  const [tipoSelecionado, setTipoSelecionado] = useState<ControleTipo | undefined>(tipoFixo)
   const [itens, setItens] = useState<ControleAcessoItem[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(0)
@@ -74,7 +79,14 @@ export function ControleAcessoPage() {
   const [busyId, setBusyId] = useState('')
   const [error, setError] = useState('')
   const { state } = useAuth()
-  const podeConfirmar = state.status === 'authenticated' && ['ADMIN', 'RH', 'SUPERVISOR'].includes(state.usuario.perfil)
+  const podeConfirmar = state.status === 'authenticated' && ['ADMIN', 'SUPERVISOR'].includes(state.usuario.perfil)
+  const tipo = tipoFixo ?? tipoSelecionado
+  const paginaEspecifica = tipoFixo !== undefined
+  const nomeAcao = tipoFixo === 'BLOQUEIO' ? 'bloqueio' : 'desbloqueio'
+  const titulo = tipoFixo ? `Confirmar ${nomeAcao}s` : 'Controle de acesso'
+  const descricao = tipoFixo
+    ? `Confirme somente os ${nomeAcao}s efetuados no sistema responsável.`
+    : 'Acompanhe as ações programadas para férias e registre quando o bloqueio ou desbloqueio for efetuado.'
 
   useEffect(() => {
     const controller = new AbortController()
@@ -131,7 +143,7 @@ export function ControleAcessoPage() {
   }
 
   function mudarTipo(value?: ControleTipo) {
-    if (tipo !== value) { setPage(0); setLoading(true); setTipo(value) }
+    if (tipoSelecionado !== value) { setPage(0); setLoading(true); setTipoSelecionado(value) }
   }
 
   return (
@@ -139,8 +151,8 @@ export function ControleAcessoPage() {
       <div className="dashboard-heading">
         <div>
           <span className="section-label">OPERAÇÃO</span>
-          <h1 id="access-title">Controle de acesso</h1>
-          <p>Acompanhe as ações programadas para férias e registre quando o bloqueio ou desbloqueio for efetuado.</p>
+          <h1 id="access-title">{titulo}</h1>
+          <p>{descricao}</p>
         </div>
         <button className="button button-secondary" onClick={() => void atualizar()} disabled={loading}>
           {loading ? 'Atualizando…' : 'Atualizar'}
@@ -161,13 +173,13 @@ export function ControleAcessoPage() {
               className={status === filtro.value ? 'filter-tab filter-tab-active' : 'filter-tab'}
               aria-pressed={status === filtro.value} onClick={() => mudarStatus(filtro.value)}>{filtro.label}</button>)}
           </div>
-          <label className="access-type-filter">Tipo de ação
-            <select value={tipo ?? ''} onChange={(event) => mudarTipo((event.target.value || undefined) as ControleTipo | undefined)}>
+          {!paginaEspecifica && <label className="access-type-filter">Tipo de ação
+            <select value={tipoSelecionado ?? ''} onChange={(event) => mudarTipo((event.target.value || undefined) as ControleTipo | undefined)}>
               <option value="">Todas</option>
               <option value="BLOQUEIO">Bloqueio</option>
               <option value="DESBLOQUEIO">Desbloqueio</option>
             </select>
-          </label>
+          </label>}
         </div>
         {loading && <p className="muted-text" role="status">Carregando ações…</p>}
         {error && <p className="notice notice-error" role="alert">{error}</p>}
@@ -177,14 +189,7 @@ export function ControleAcessoPage() {
         </div>
         {!podeConfirmar && itens.length > 0 && <p className="muted-text">Seu perfil permite consultar as ações, mas não confirmá-las.</p>}
         <p className="access-guidance">Confirme somente depois de concluir a alteração de acesso no sistema responsável. A confirmação atualiza a situação do funcionário e registra a ação no histórico.</p>
-        {total > PAGE_SIZE && <div className="checklist-pagination" aria-label="Paginação do controle de acesso">
-          <span>{page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} de {total} ações</span>
-          <div>
-            <button className="button button-secondary" onClick={() => { setLoading(true); setPage((value) => Math.max(0, value - 1)) }} disabled={loading || page === 0}>Anterior</button>
-            <span>Página {page + 1} de {Math.ceil(total / PAGE_SIZE)}</span>
-            <button className="button button-secondary" onClick={() => { setLoading(true); setPage((value) => Math.min(Math.ceil(total / PAGE_SIZE) - 1, value + 1)) }} disabled={loading || page >= Math.ceil(total / PAGE_SIZE) - 1}>Próxima</button>
-          </div>
-        </div>}
+        <Pagination page={page} total={total} pageSize={PAGE_SIZE} label="Paginação do controle de acesso" onPageChange={(nextPage) => { setLoading(true); setPage(nextPage) }} />
       </section>
     </section>
   )

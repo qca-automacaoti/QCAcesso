@@ -3,6 +3,7 @@ import { useAuth } from '../auth/auth.context'
 import { ChecklistRow } from './ChecklistRow'
 import { checklistApi } from './checklist.api'
 import type { ChecklistEditInput, ChecklistItem, ChecklistResumo, ChecklistStatus } from './checklist.api'
+import { Pagination } from '../../components/Pagination'
 
 const filtros: Array<{ label: string; value?: ChecklistStatus }> = [
   { label: 'Todos' },
@@ -13,7 +14,7 @@ const filtros: Array<{ label: string; value?: ChecklistStatus }> = [
 ]
 
 const resumoInicial: ChecklistResumo = { pendentes: 0, editados: 0, confirmados: 0, rejeitados: 0 }
-const PAGE_SIZE = 80
+const PAGE_SIZE = 10
 
 export function ChecklistPage() {
   const [status, setStatus] = useState<ChecklistStatus | undefined>()
@@ -160,16 +161,7 @@ export function ChecklistPage() {
           {readOnly && itens.length > 0 && <p className="muted-text">Seu perfil permite consultar os itens. Somente RH e Administração podem revisar ou confirmar.</p>}
           {!loading && itens.length === 0 && <p className="empty-state">Nenhum item encontrado para o filtro selecionado.</p>}
         </div>
-        {total > PAGE_SIZE && (
-          <div className="checklist-pagination" aria-label="Paginação do checklist">
-            <span>{page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} de {total} itens</span>
-            <div>
-              <button className="button button-secondary" onClick={() => { setLoading(true); setPage((current) => Math.max(0, current - 1)) }} disabled={loading || page === 0}>Anterior</button>
-              <span>Página {page + 1} de {Math.ceil(total / PAGE_SIZE)}</span>
-              <button className="button button-secondary" onClick={() => { setLoading(true); setPage((current) => Math.min(Math.ceil(total / PAGE_SIZE) - 1, current + 1)) }} disabled={loading || page >= Math.ceil(total / PAGE_SIZE) - 1}>Próxima</button>
-            </div>
-          </div>
-        )}
+        <Pagination page={page} total={total} pageSize={PAGE_SIZE} label="Paginação do checklist" onPageChange={(nextPage) => { setLoading(true); setPage(nextPage) }} />
       </section>
     </section>
   )
