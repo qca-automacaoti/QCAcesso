@@ -18,5 +18,9 @@ const auth = new AuthService(provider, config.SESSION_TTL_MS, new SupabaseSessio
 const app = createApp(config, auth);
 
 export default function handler(req: IncomingMessage, res: ServerResponse) {
+  // As rotas do Express vivem sob /api. Dependendo de como a Vercel encaminha o
+  // rewrite, o prefixo pode não chegar aqui; restaurá-lo mantém o roteamento igual ao local.
+  const url = req.url || '/';
+  if (!url.startsWith('/api')) req.url = '/api' + (url === '/' ? '' : url);
   return app(req, res);
 }
