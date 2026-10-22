@@ -6,7 +6,7 @@ const readline = require('node:readline');
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env'), quiet: true });
 const { createClient } = require('@supabase/supabase-js');
 
-const PERFIS = ['ADMIN', 'RH', 'SUPERVISOR', 'AUDITOR'];
+const PERFIS = ['ADMIN', 'RH', 'SUPERVISOR', 'AUDITOR', 'TECNOLOGIA'];
 const clientOptions = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
 
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: Boolean(process.stdin.isTTY) });

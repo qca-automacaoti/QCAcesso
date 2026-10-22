@@ -2,11 +2,11 @@ import type { RequestHandler } from 'express';
 import type { EnvConfig } from '../../config/env';
 import { createDatabase } from '../../config/database';
 import type { PerfilUsuario, UsuarioAutenticado } from '../auth/auth.types';
-import { AuthError } from '../auth/auth.types';
+import { AuthError, PERFIS } from '../auth/auth.types';
 import type { AuthService } from '../auth/auth.service';
 import { atualizarUsuario, criarUsuario, listarUsuarios } from './usuarios.service';
 
-const perfis: PerfilUsuario[] = ['ADMIN', 'RH', 'SUPERVISOR', 'AUDITOR'];
+const perfis: readonly PerfilUsuario[] = PERFIS;
 
 export function usuariosController(auth: AuthService, config: EnvConfig, cookieName: string) {
   async function db(req: Parameters<RequestHandler>[0]) {
