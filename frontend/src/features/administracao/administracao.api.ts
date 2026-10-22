@@ -1,6 +1,6 @@
 import { apiRequest } from '../../lib/api-client'
 
-export type PerfilUsuario = 'ADMIN' | 'RH' | 'SUPERVISOR' | 'AUDITOR'
+export type PerfilUsuario = 'ADMIN' | 'RH' | 'SUPERVISOR' | 'AUDITOR' | 'TECNOLOGIA'
 export interface UsuarioAdmin { id: string; nome: string; email: string; perfil: PerfilUsuario; ativo: boolean; criadoEm: string }
 export interface UsuariosListagem { itens: UsuarioAdmin[]; total: number }
 export const administracaoApi = {

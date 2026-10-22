@@ -17,6 +17,7 @@ import { controleAcessoRoutes } from './modules/controle-acesso/controle-acesso.
 import { usuariosRoutes } from './modules/usuarios/usuarios.routes';
 import { auditoriaRoutes } from './modules/auditoria/auditoria.routes';
 import { configuracoesRoutes } from './modules/configuracoes/configuracoes.routes';
+import { tecnologiaRoutes } from './modules/tecnologia/tecnologia.routes';
 
 export function createApp(config: EnvConfig, auth: AuthService) {
   const app = express();
@@ -61,6 +62,7 @@ export function createApp(config: EnvConfig, auth: AuthService) {
   app.use('/api/usuarios', usuariosRoutes(auth, config));
   app.use('/api/auditoria', auditoriaRoutes(auth, config));
   app.use('/api/configuracoes', configuracoesRoutes(auth, config));
+  app.use('/api/tecnologia', tecnologiaRoutes(auth, config));
   app.use((_req, res) => { res.status(404).json({ error: { code: 'NAO_ENCONTRADO', message: 'Rota não encontrada.' } }); });
   const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
     const requestId = res.getHeader('X-Request-Id');

@@ -12,6 +12,7 @@ const tipos: Array<{ value?: TipoEvento; label: string }> = [
   { value: 'CONFIRMACAO_DESBLOQUEIO', label: 'Desbloqueios' },
   { value: 'ENVIO_ALERTA', label: 'Alertas' },
   { value: 'CONFIGURACAO_ALTERADA', label: 'Configurações' },
+  { value: 'FERIAS_TI', label: 'Férias da TI' },
 ]
 
 function dataHora(value: string) { return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) }

@@ -1,5 +1,5 @@
 // Fonte: schema.sql, public.usuarios e enum perfil_usuario. Sem modelos de fases futuras.
-export const PERFIS = ['ADMIN', 'RH', 'SUPERVISOR', 'AUDITOR'] as const;
+export const PERFIS = ['ADMIN', 'RH', 'SUPERVISOR', 'AUDITOR', 'TECNOLOGIA'] as const;
 export type PerfilUsuario = (typeof PERFIS)[number];
 
 export interface Usuario {

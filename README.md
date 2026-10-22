@@ -39,7 +39,8 @@ O sistema elimina processos manuais e suscetíveis a falhas ao permitir o envio 
 - **Controle de Bloqueio & Desbloqueio**: Mapeamento e gestão das revogações e reativações de credenciais nas datas programadas.
 - **Notificações Automáticas (Cron Jobs)**: Envio automatizado de e-mails para supervisores e gestores informando sobre bloqueios e desbloqueios iminentes ou atrasados.
 - **Logs de Auditoria (Audit Trail)**: Rastreabilidade de cada ação efetuada por usuários (uploads, edições, confirmações, alterações de perfil e envios de alertas).
-- **Gestão de Usuários e Perfis (RBAC)**: Níveis de permissão ajustáveis (`ADMIN`, `RH`, `SUPERVISOR`, `AUDITOR`).
+- **Calendário de Férias da TI**: Área exclusiva da Tecnologia com a visão mês a mês do afastamento de cada integrante, do primeiro dia de férias até o retorno. O cadastro é restrito a Administração e Supervisão e agenda automaticamente o bloqueio e o desbloqueio de acesso.
+- **Gestão de Usuários e Perfis (RBAC)**: Níveis de permissão ajustáveis (`ADMIN`, `RH`, `SUPERVISOR`, `AUDITOR`, `TECNOLOGIA`).
 
 ---
 
@@ -134,7 +135,7 @@ cd QCAcesso
 
 4. Preencha as variáveis necessárias no `.env` (URL do Supabase, chaves e credenciais do banco).
 
-5. Aplique a estrutura do banco de dados (no Supabase SQL Editor usando o arquivo `schema.sql` ou via Prisma):
+5. Aplique a estrutura do banco de dados (no Supabase SQL Editor usando o arquivo `schema.sql` e, em seguida, os arquivos de `backend/migrations` em ordem — `001_sessoes.sql` e `002_tecnologia.sql` — ou via Prisma):
    ```bash
    npm run prisma:generate
    ```
@@ -230,8 +231,8 @@ cd QCAcesso
 
 O projeto utiliza PostgreSQL hospedado no **Supabase**. As tabelas principais da aplicação são:
 
-- `usuarios`: Cadastro de perfis (`ADMIN`, `RH`, `SUPERVISOR`, `AUDITOR`) integrados ao Auth do Supabase.
-- `funcionarios`: Cadastro de colaboradores vinculados por empresa e cadastro (matrícula).
+- `usuarios`: Cadastro de perfis (`ADMIN`, `RH`, `SUPERVISOR`, `AUDITOR`, `TECNOLOGIA`) integrados ao Auth do Supabase.
+- `funcionarios`: Cadastro de colaboradores vinculados por empresa e cadastro (matrícula). Colaboradores de TI têm `usuario_id` preenchido, ligando o registro ao usuário de perfil `TECNOLOGIA`.
 - `upload_planilhas`: Registro dos uploads de arquivos Excel processados.
 - `checklist_revisao`: Área de staging para dados importados das planilhas aguardando aprovação.
 - `periodos_ferias`: Períodos de férias confirmados e ativos.
@@ -250,7 +251,8 @@ O projeto utiliza PostgreSQL hospedado no **Supabase**. As tabelas principais da
 - **Jobs de alertas**: Com `ALERTS_ENABLED=true`, o backend executa uma verificação ao iniciar e diariamente às 08:00 (fuso configurado), envia lembretes na véspera e escala ações vencidas para o supervisor e perfis de Administração/RH. Os envios são idempotentes por ação, destinatário e dia.
 - **Template global de e-mail**: Administração e Supervisão acessam **Configurações** no sistema para editar assunto e mensagem, usando variáveis como `{{nome}}`, `{{dataProgramada}}` e `{{link}}`. A mesma tela permite enviar um e-mail de teste; o SMTP precisa estar configurado no backend.
 - **Credenciais isoladas**: A `SUPABASE_SERVICE_ROLE_KEY` é usada somente pelos jobs backend; login e requests da aplicação continuam usando a chave pública.
-- **Perfis operacionais**: Administração acessa e administra todo o sistema; Supervisor acessa todos os módulos operacionais; RH acessa somente Uploads e Checklist, incluindo edição, rejeição, confirmação e associação do supervisor responsável; Auditor consulta Dashboard e Auditoria.
+- **Perfis operacionais**: Administração acessa e administra todo o sistema; Supervisor acessa todos os módulos operacionais; RH acessa somente Uploads e Checklist, incluindo edição, rejeição, confirmação e associação do supervisor responsável; Auditor consulta Dashboard e Auditoria; Tecnologia consulta apenas o calendário de Férias da TI.
+- **Área de Tecnologia**: `/app/tecnologia` é restrita aos perfis Tecnologia, Supervisão e Administração. Somente Administração e Supervisão cadastram ou cancelam férias, e apenas para usuários ativos de perfil `TECNOLOGIA`. Cada cadastro gera o período em `periodos_ferias` e as ações de bloqueio (afastamento) e desbloqueio (retorno) em `controle_acesso`, sob responsabilidade do supervisor escolhido, com registro de auditoria do tipo `FERIAS_TI`.
 - **Cadastro de usuários**: Administração usa `/app/usuarios` para criar contas com senha inicial e definir o perfil. O cadastro exige `SUPABASE_SERVICE_ROLE_KEY` configurada no backend.
 - **Readiness para publicação**: `GET /api/health` confirma disponibilidade básica; `GET /api/health/ready` confirma que a API e o banco estão prontos e informa se os alertas estão habilitados.
 - **Validação local**: execute `npm run check` em `backend` e `frontend` antes de publicar. O comando do backend compila e executa os testes; o do frontend compila e executa o lint.

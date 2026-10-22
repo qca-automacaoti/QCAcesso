@@ -14,7 +14,8 @@ export type TipoEvento =
   | 'CONFIRMACAO_BLOQUEIO'
   | 'CONFIRMACAO_DESBLOQUEIO'
   | 'ENVIO_ALERTA'
-  | 'CONFIGURACAO_ALTERADA';
+  | 'CONFIGURACAO_ALTERADA'
+  | 'FERIAS_TI';
 
 export interface Database {
   public: {
@@ -39,6 +40,7 @@ export interface Database {
           nome: string;
           email: string | null;
           supervisor_id: string | null;
+          usuario_id: string | null;
           status_atual: StatusFuncionario;
           created_at: string;
           updated_at: string;
@@ -50,6 +52,7 @@ export interface Database {
           nome: string;
           email?: string | null;
           supervisor_id?: string | null;
+          usuario_id?: string | null;
           status_atual?: StatusFuncionario;
           created_at?: string;
           updated_at?: string;
@@ -60,6 +63,7 @@ export interface Database {
           nome?: string;
           email?: string | null;
           supervisor_id?: string | null;
+          usuario_id?: string | null;
           status_atual?: StatusFuncionario;
           updated_at?: string;
         };
@@ -278,6 +282,14 @@ export interface Database {
       administrar_usuario: {
         Args: { p_usuario_id: string; p_perfil: PerfilUsuario; p_ativo: boolean };
         Returns: Database['public']['Tables']['usuarios']['Row'];
+      };
+      registrar_ferias_ti: {
+        Args: { p_usuario_id: string; p_data_inicio: string; p_data_fim: string; p_supervisor_id: string };
+        Returns: Database['public']['Tables']['periodos_ferias']['Row'];
+      };
+      cancelar_ferias_ti: {
+        Args: { p_periodo_id: string };
+        Returns: Database['public']['Tables']['periodos_ferias']['Row'];
       };
       salvar_configuracao_email: {
         Args: { p_assunto: string; p_mensagem: string };

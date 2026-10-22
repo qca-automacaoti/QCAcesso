@@ -10,8 +10,10 @@ import { ListaDesbloqueioPage } from '../controle-acesso/ListaDesbloqueioPage'
 import { AuditoriaPage } from '../auditoria/AuditoriaPage'
 import { UsuariosPage } from '../administracao/UsuariosPage'
 import { ConfiguracoesPage } from '../configuracoes/ConfiguracoesPage'
+import { TecnologiaPage } from '../tecnologia/TecnologiaPage'
 import { LoginPage } from './LoginPage'
 import { ProtectedRoute } from './ProtectedRoute'
+import { rotaInicial } from './auth.types'
 
 export function AppRouter() {
   const { state, login, reload } = useAuth()
@@ -29,7 +31,7 @@ export function AppRouter() {
   const signedIn = state.status === 'authenticated'
   // Após o login, volta para a página protegida que o usuário tentou abrir.
   const from = (location.state as { from?: string } | null)?.from
-  const destinoPadrao = signedIn && state.usuario.perfil === 'RH' ? '/app/uploads' : '/app'
+  const destinoPadrao = signedIn ? rotaInicial(state.usuario.perfil) : '/app'
   const destino = from?.startsWith('/') && !from.startsWith('//') && from !== '/login' ? from : destinoPadrao
   return (
     <Routes>
@@ -45,6 +47,7 @@ export function AppRouter() {
             <Route path="controle-acesso/bloqueios" element={<ListaBloqueioPage />} />
             <Route path="controle-acesso/desbloqueios" element={<ListaDesbloqueioPage />} />
           </Route>
+          <Route element={<ProtectedRoute perfis={['ADMIN', 'SUPERVISOR', 'TECNOLOGIA']} />}><Route path="tecnologia" element={<TecnologiaPage />} /></Route>
           <Route element={<ProtectedRoute perfis={['ADMIN', 'SUPERVISOR', 'AUDITOR']} />}><Route path="auditoria" element={<AuditoriaPage />} /></Route>
           <Route element={<ProtectedRoute perfis={['ADMIN', 'SUPERVISOR']} />}><Route path="usuarios" element={<UsuariosPage />} /></Route>
           <Route element={<ProtectedRoute perfis={['ADMIN', 'SUPERVISOR']} />}><Route path="configuracoes" element={<ConfiguracoesPage />} /></Route>

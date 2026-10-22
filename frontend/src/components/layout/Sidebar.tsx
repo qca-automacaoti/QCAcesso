@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { FileSpreadsheet, History, KeyRound, LayoutDashboard, ListChecks, Settings, ShieldCheck, ShieldOff, Users } from 'lucide-react'
+import { CalendarDays, FileSpreadsheet, History, KeyRound, LayoutDashboard, ListChecks, Settings, ShieldCheck, ShieldOff, Users } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../../features/auth/auth.context'
 import type { PerfilUsuario } from '../../features/auth/auth.types'
@@ -12,6 +12,7 @@ const navItems: Array<{ label: string; to: string; icon: LucideIcon; perfis: Per
   { label: 'Controle de acesso', to: '/app/controle-acesso', icon: KeyRound, perfis: ['ADMIN', 'SUPERVISOR'] },
   { label: 'Confirmar bloqueios', to: '/app/controle-acesso/bloqueios', icon: ShieldOff, perfis: ['ADMIN', 'SUPERVISOR'] },
   { label: 'Confirmar desbloqueios', to: '/app/controle-acesso/desbloqueios', icon: ShieldCheck, perfis: ['ADMIN', 'SUPERVISOR'] },
+  { label: 'Férias da TI', to: '/app/tecnologia', icon: CalendarDays, perfis: ['ADMIN', 'SUPERVISOR', 'TECNOLOGIA'] },
   { label: 'Auditoria', to: '/app/auditoria', icon: History, perfis: ['ADMIN', 'SUPERVISOR', 'AUDITOR'] },
   { label: 'Usuários', to: '/app/usuarios', icon: Users, perfis: ['ADMIN', 'SUPERVISOR'] },
   { label: 'Configurações', to: '/app/configuracoes', icon: Settings, perfis: ['ADMIN', 'SUPERVISOR'] },

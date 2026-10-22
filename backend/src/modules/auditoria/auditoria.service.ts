@@ -15,7 +15,7 @@ export interface AuditoriaItem {
 }
 export interface AuditoriaListagem { itens: AuditoriaItem[]; total: number }
 
-const tipos: TipoEvento[] = ['UPLOAD', 'EDICAO_CHECKLIST', 'CONFIRMACAO_BLOQUEIO', 'CONFIRMACAO_DESBLOQUEIO', 'ENVIO_ALERTA', 'CONFIGURACAO_ALTERADA'];
+const tipos: TipoEvento[] = ['UPLOAD', 'EDICAO_CHECKLIST', 'CONFIRMACAO_BLOQUEIO', 'CONFIRMACAO_DESBLOQUEIO', 'ENVIO_ALERTA', 'CONFIGURACAO_ALTERADA', 'FERIAS_TI'];
 
 export async function listarAuditoria(db: Db, filtros: { tipo?: TipoEvento; busca?: string; inicio?: string; fim?: string; offset?: number } = {}): Promise<AuditoriaListagem> {
   let query = db.from('logs_atividade').select('id,usuario_id,tipo_evento,entidade_afetada,entidade_id,descricao,data_hora', { count: 'exact' })

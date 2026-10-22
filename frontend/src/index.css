@@ -188,7 +188,7 @@ select { cursor: pointer; }
 .app-content { width: 100%; max-width: 1440px; margin: 0 auto; padding: 36px clamp(18px, 4vw, 44px) 64px; }
 
 /* ---------- Cabeçalho de página ---------- */
-.dashboard-page, .upload-page, .checklist-page, .access-page, .admin-page, .config-page { display: grid; gap: 24px; animation: page-in .45s var(--ease) both; }
+.dashboard-page, .upload-page, .checklist-page, .access-page, .admin-page, .config-page, .ti-page { display: grid; gap: 24px; animation: page-in .45s var(--ease) both; }
 .dashboard-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
 .dashboard-heading .section-label { position: relative; padding-top: 18px; }
 .dashboard-heading .section-label::before { content: ''; position: absolute; top: 0; left: 0; width: 36px; height: 3px; background: var(--crimson); }
@@ -216,9 +216,9 @@ select { cursor: pointer; }
 .indicator-card.indicator-alerta::after { background: #c08a1e; }
 .indicator-card.indicator-perigo::after { background: var(--crimson); }
 .indicator-card.indicator-perigo strong { color: var(--crimson); }
-.checklist-summary .indicator-card, .access-summary .indicator-card { border-left: 3px solid var(--navy-800); }
-.checklist-summary .indicator-sucesso, .access-summary .indicator-sucesso { border-left-color: var(--success); }
-.checklist-summary .indicator-alerta, .access-summary .indicator-alerta { border-left-color: #c08a1e; }
+.checklist-summary .indicator-card, .access-summary .indicator-card, .ti-summary .indicator-card { border-left: 3px solid var(--navy-800); }
+.checklist-summary .indicator-sucesso, .access-summary .indicator-sucesso, .ti-summary .indicator-sucesso { border-left-color: var(--success); }
+.checklist-summary .indicator-alerta, .access-summary .indicator-alerta, .ti-summary .indicator-alerta { border-left-color: #c08a1e; }
 .checklist-summary .indicator-perigo, .access-summary .indicator-perigo { border-left-color: var(--crimson); }
 
 /* ---------- Painéis ---------- */
@@ -426,4 +426,100 @@ select { cursor: pointer; }
   .heading-actions, .heading-actions .button, .dashboard-heading > .button { width: 100%; }
   .metric-list div { align-items: flex-start; flex-direction: column; gap: 4px; }
   .metric-list dd { text-align: left; }
+}
+
+/* ---------- Tecnologia: calendário de férias da TI ---------- */
+.ti-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ti-form { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: 12px; align-items: end; }
+.ti-form label { display: grid; gap: 6px; color: var(--ink); font-size: .75rem; font-weight: 600; }
+.ti-form input, .ti-form select {
+  width: 100%; min-height: 42px; padding: 10px 12px; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-size: .875rem;
+}
+.ti-form input:focus, .ti-form select:focus { outline: 0; border-color: var(--navy-800); box-shadow: 0 0 0 3px rgba(20, 27, 77, .1); }
+.ti-form .button { min-height: 42px; }
+
+.ti-calendar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.ti-month-nav { display: flex; align-items: center; gap: 10px; }
+.ti-month-nav .button { min-height: 36px; padding: 7px 10px; }
+.ti-month-nav strong { min-width: 190px; text-align: center; font-family: var(--font-heading); font-size: 1.0625rem; font-weight: 700; color: var(--navy-800); letter-spacing: -.01em; }
+.ti-toolbar-side { display: flex; align-items: center; gap: 10px; }
+.ti-toolbar-side .button { min-height: 36px; font-size: .8125rem; }
+
+.ti-calendar-wrap { overflow-x: auto; }
+.ti-calendar { width: 100%; min-width: 660px; border-collapse: collapse; table-layout: fixed; }
+.ti-calendar th {
+  padding: 0 0 10px; color: var(--muted); font-family: var(--font-heading); font-size: .625rem;
+  font-weight: 700; letter-spacing: .14em; text-transform: uppercase; text-align: left;
+}
+.ti-day { height: 96px; vertical-align: top; padding: 6px; background: var(--surface); border: 1px solid var(--border); }
+.ti-day-fds { background: var(--navy-50); }
+.ti-day-fora { background: var(--bg); }
+.ti-day-fora .ti-day-number { color: var(--subtle); }
+.ti-day-hoje { border-color: var(--navy-800); box-shadow: inset 0 0 0 1px var(--navy-800); }
+.ti-day-number { display: block; margin-bottom: 5px; padding: 0 2px; color: var(--text); font-size: .75rem; font-weight: 600; font-variant-numeric: lining-nums tabular-nums; }
+.ti-day-hoje .ti-day-number { color: #fff; background: var(--navy-800); border-radius: var(--radius-sm); width: fit-content; min-width: 20px; padding: 1px 5px; text-align: center; }
+.ti-day-marks { display: grid; gap: 3px; }
+.ti-chip {
+  display: block; overflow: hidden; padding: 2px 6px; border-left: 3px solid; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: .6875rem; font-weight: 600; line-height: 1.5; white-space: nowrap; text-overflow: ellipsis;
+}
+.ti-chip-inicio { border-top-left-radius: var(--radius-sm); border-bottom-left-radius: var(--radius-sm); }
+.ti-chip-retorno { border-left-style: dashed; font-weight: 500; }
+
+.ti-legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 20px 0 0; padding: 16px 0 0; border-top: 1px solid var(--border); list-style: none; }
+.ti-legend li { display: flex; align-items: center; gap: 8px; color: var(--text); font-size: .8125rem; font-weight: 500; }
+.ti-legend-note { color: var(--muted); font-size: .75rem; }
+.ti-dot { width: 10px; height: 10px; border-radius: 2px; background: var(--navy-800); }
+.ti-dot-retorno { background: transparent; border: 1px dashed var(--border-strong); }
+
+.ti-period-list { display: grid; gap: 8px; }
+.ti-period-row {
+  display: grid; grid-template-columns: minmax(180px, 1fr) minmax(230px, 1fr) 150px auto; gap: 16px; align-items: center;
+  padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  transition: border-color .3s var(--ease), box-shadow .3s var(--ease);
+}
+.ti-period-row:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
+.ti-period-person { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ti-period-person > div, .ti-period-dates, .ti-period-state { display: grid; gap: 4px; min-width: 0; }
+.ti-period-person strong { color: var(--ink); font-weight: 600; overflow-wrap: anywhere; }
+.ti-period-person span, .ti-period-dates span, .ti-period-state > span:not(.status-pill) { color: var(--muted); font-size: .8125rem; line-height: 1.45; }
+.ti-period-dates strong { color: var(--ink); font-weight: 600; font-variant-numeric: lining-nums tabular-nums; }
+.ti-period-state .status-pill { justify-self: start; }
+.ti-period-row .checklist-actions { justify-content: flex-end; }
+.ti-period-row .button { min-height: 36px; padding: 7px 12px; font-size: .8125rem; }
+
+/* Cores por colaborador: tom forte no texto e na borda, fundo claro para legibilidade. */
+.ti-cor-0 { color: #1f2766; background: #e9ebf5; border-color: #1f2766; }
+.ti-cor-1 { color: #7c1526; background: #f8e8eb; border-color: #971b2f; }
+.ti-cor-2 { color: #1d6b45; background: #e9f4ee; border-color: #1d6b45; }
+.ti-cor-3 { color: #8a5a00; background: #fbf4e4; border-color: #b07a10; }
+.ti-cor-4 { color: #1d5d7a; background: #e6f1f6; border-color: #1d5d7a; }
+.ti-cor-5 { color: #5c3b8f; background: #efeaf8; border-color: #5c3b8f; }
+.ti-cor-6 { color: #0f5c56; background: #e4f1ef; border-color: #0f5c56; }
+.ti-cor-7 { color: #8c4a1f; background: #f9ece4; border-color: #8c4a1f; }
+.ti-dot.ti-cor-0 { background: #1f2766; }
+.ti-dot.ti-cor-1 { background: #971b2f; }
+.ti-dot.ti-cor-2 { background: #1d6b45; }
+.ti-dot.ti-cor-3 { background: #b07a10; }
+.ti-dot.ti-cor-4 { background: #1d5d7a; }
+.ti-dot.ti-cor-5 { background: #5c3b8f; }
+.ti-dot.ti-cor-6 { background: #0f5c56; }
+.ti-dot.ti-cor-7 { background: #8c4a1f; }
+
+@media (max-width: 1120px) {
+  .ti-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ti-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ti-form .button { grid-column: 1 / -1; justify-self: start; }
+  .ti-period-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+@media (max-width: 800px) {
+  .ti-summary, .ti-form, .ti-period-row { grid-template-columns: 1fr; }
+  .ti-period-row { align-items: start; gap: 10px; }
+  .ti-period-row .checklist-actions { justify-content: flex-start; }
+  .ti-calendar-toolbar { align-items: stretch; flex-direction: column; }
+  .ti-month-nav { justify-content: space-between; }
+  .ti-month-nav strong { min-width: 0; }
+  .ti-toolbar-side { justify-content: space-between; }
+  .ti-day { height: 84px; }
 }

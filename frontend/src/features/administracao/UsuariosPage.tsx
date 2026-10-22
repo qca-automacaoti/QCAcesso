@@ -7,6 +7,7 @@ import type { PerfilUsuario, UsuarioAdmin } from './administracao.api'
 const perfis: Array<{ value: PerfilUsuario; label: string }> = [
   { value: 'ADMIN', label: 'Administrador' }, { value: 'RH', label: 'Recursos Humanos' },
   { value: 'SUPERVISOR', label: 'Supervisor' }, { value: 'AUDITOR', label: 'Auditor' },
+  { value: 'TECNOLOGIA', label: 'Tecnologia' },
 ]
 const PAGE_SIZE = 10
 function formatarData(value: string) { return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' }).format(new Date(value)) }

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../config/database.types';
 import type { PerfilUsuario, UsuarioAutenticado } from '../auth/auth.types';
+import { PERFIS } from '../auth/auth.types';
 import { AuthError } from '../auth/auth.types';
 import { createAdminDatabase } from '../../config/database';
 import type { EnvConfig } from '../../config/env';
@@ -46,7 +47,7 @@ export async function atualizarUsuario(
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
     throw new AuthError(400, 'ID_INVALIDO', 'Identificador de usuário inválido.');
   }
-  if (!['ADMIN', 'RH', 'SUPERVISOR', 'AUDITOR'].includes(input.perfil) || typeof input.ativo !== 'boolean') {
+  if (!PERFIS.includes(input.perfil) || typeof input.ativo !== 'boolean') {
     throw new AuthError(400, 'DADOS_INVALIDOS', 'Perfil ou status de usuário inválido.');
   }
   const { data, error } = await (db as any).rpc('administrar_usuario', {
@@ -63,7 +64,7 @@ export async function criarUsuario(config: EnvConfig, atual: UsuarioAutenticado,
   if (atual.perfil !== 'ADMIN') throw new AuthError(403, 'PERFIL_NAO_PERMITIDO', 'Somente Administração pode cadastrar usuários.');
   const nome = input.nome.trim();
   const email = input.email.trim().toLowerCase();
-  if (nome.length < 2 || nome.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || input.senha.length < 8 || input.senha.length > 128 || !['ADMIN', 'RH', 'SUPERVISOR', 'AUDITOR'].includes(input.perfil)) {
+  if (nome.length < 2 || nome.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || input.senha.length < 8 || input.senha.length > 128 || !PERFIS.includes(input.perfil)) {
     throw new AuthError(400, 'DADOS_INVALIDOS', 'Informe nome, e-mail, senha de no mínimo 8 caracteres e perfil válido.');
   }
   if (!config.SUPABASE_SERVICE_ROLE_KEY) throw new AuthError(503, 'CADASTRO_INDISPONIVEL', 'Configure a credencial administrativa do Supabase para cadastrar usuários.');

@@ -16,6 +16,7 @@ const contas = {
   'admin@qca.com.br': { senha: 'senha-admin', usuario: usuario('admin@qca.com.br', 'ADMIN') },
   'rh@qca.com.br': { senha: 'senha-rh', usuario: usuario('rh@qca.com.br', 'RH') },
   'supervisor@qca.com.br': { senha: 'senha-supervisor', usuario: usuario('supervisor@qca.com.br', 'SUPERVISOR') },
+  'ti@qca.com.br': { senha: 'senha-ti', usuario: usuario('ti@qca.com.br', 'TECNOLOGIA') },
   'inativo@qca.com.br': { senha: 'senha-inativo', usuario: usuario('inativo@qca.com.br', 'RH', false) },
 };
 
@@ -119,4 +120,28 @@ test('RH fica restrito a upload e checklist', () => withApi(async (call) => {
   assert.equal((await call('/controle-acesso', { cookie })).status, 403);
   assert.equal((await call('/auditoria', { cookie })).status, 403);
   assert.equal((await call('/usuarios', { cookie })).status, 403);
+}));
+
+test('RH não acessa a área de Tecnologia', () => withApi(async (call) => {
+  const login = await call('/auth/login', { body: { email: 'rh@qca.com.br', senha: 'senha-rh' } });
+  const cookie = sessionCookie(login).split(';')[0];
+  assert.equal((await call('/tecnologia/ferias', { cookie })).status, 403);
+}));
+
+test('Tecnologia consulta o calendário da TI, mas não cadastra nem acessa o restante', () => withApi(async (call) => {
+  const login = await call('/auth/login', { body: { email: 'ti@qca.com.br', senha: 'senha-ti' } });
+  const cookie = sessionCookie(login).split(';')[0];
+  assert.equal((await call('/dashboard', { cookie })).status, 403);
+  assert.equal((await call('/checklist', { cookie })).status, 403);
+  assert.equal((await call('/controle-acesso', { cookie })).status, 403);
+  assert.equal((await call('/auditoria', { cookie })).status, 403);
+  assert.equal((await call('/usuarios', { cookie })).status, 403);
+  // O cadastro de férias é exclusivo de Administração e Supervisão.
+  const cadastro = await call('/tecnologia/ferias', { cookie, body: { colaboradorId: 'ti@qca.com.br', dataInicio: '2026-01-05', dataFim: '2026-01-20', supervisorId: 'supervisor@qca.com.br' } });
+  assert.equal(cadastro.status, 403);
+  assert.equal((await cadastro.json()).error.code, 'PERFIL_NAO_PERMITIDO');
+  // O mês inválido é recusado antes de qualquer consulta ao banco.
+  const mesInvalido = await call('/tecnologia/ferias?mes=2026-13', { cookie });
+  assert.equal(mesInvalido.status, 400);
+  assert.equal((await mesInvalido.json()).error.code, 'MES_INVALIDO');
 }));
