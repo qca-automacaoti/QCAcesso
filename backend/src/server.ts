@@ -4,21 +4,35 @@ import { loadEnv } from './config/env';
 import { createMailer } from './config/mailer';
 import { createIdentityProvider } from './modules/auth/auth.provider';
 import { AuthService } from './modules/auth/auth.service';
+import { SupabaseSessionStore } from './modules/auth/session.store';
 import { iniciarJobsAlertas } from './jobs/alertas.scheduler';
 
 async function iniciarServidor() {
   const config = loadEnv();
   let pararJobs: () => void = () => {};
 
+  // Os alertas são um recurso acessório: uma falha de e-mail não pode impedir a API de subir.
   if (config.ALERTS_ENABLED) {
-    const mailer = createMailer(config);
-    try { await mailer.verify(); }
-    catch { throw new Error('Não foi possível validar a conexão SMTP configurada para os alertas.'); }
-    pararJobs = iniciarJobsAlertas(createAdminDatabase(config), mailer, config);
-    console.log('Alertas automáticos habilitados: execução na inicialização e diariamente às 08:00.');
+    try {
+      const mailer = createMailer(config);
+      await mailer.verify();
+      pararJobs = iniciarJobsAlertas(createAdminDatabase(config), mailer, config);
+      console.log('Alertas automáticos habilitados: execução na inicialização e diariamente às 08:00.');
+    } catch (error) {
+      const motivo = error instanceof Error ? error.message : 'falha ao configurar o envio de e-mail.';
+      console.warn('Alertas automáticos desabilitados (' + motivo + '). A API continua disponível.');
+    }
   }
 
-  const auth = new AuthService(createIdentityProvider(config), config.SESSION_TTL_MS);
+  // SESSION_STORE=supabase reproduz localmente o comportamento serverless (sessões no banco).
+  const provider = createIdentityProvider(config);
+  const usarBanco = process.env.SESSION_STORE === 'supabase';
+  if (usarBanco) console.log('Sessões persistidas no banco (mesmo caminho usado na Vercel).');
+  const auth = new AuthService(
+    provider,
+    config.SESSION_TTL_MS,
+    usarBanco ? new SupabaseSessionStore(config, provider) : undefined,
+  );
   const server = createApp(config, auth).listen(config.PORT, config.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1', () => {
     console.log('QCAcesso API em http://localhost:' + config.PORT);
   });

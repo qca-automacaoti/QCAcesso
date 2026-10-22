@@ -45,10 +45,18 @@ async function main() {
   if (!url || !publicKey) throw new Error('Configure SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY em backend/.env.');
 
   console.log('Criar usuário do QCAcesso em ' + url + '\n');
-  console.log('A Secret key fica em Supabase > Project Settings > API Keys (sb_secret_... ou service_role).');
-  console.log('Ela é usada só nesta execução e não é gravada. O texto digitado fica oculto.\n');
-  const secretKey = (await ask('Secret key: ', true)).trim();
-  if (!isSecretKey(secretKey)) throw new Error('Isso não é uma Secret key (sb_secret_...) nem uma chave service_role.');
+  // Reaproveita a Secret key já configurada: colar em prompt oculto costuma truncar no Windows.
+  const chaveDoAmbiente = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+  let secretKey;
+  if (isSecretKey(chaveDoAmbiente)) {
+    console.log('Usando a SUPABASE_SERVICE_ROLE_KEY definida em backend/.env.\n');
+    secretKey = chaveDoAmbiente;
+  } else {
+    console.log('A Secret key fica em Supabase > Project Settings > API Keys (sb_secret_... ou service_role).');
+    console.log('Ela é usada só nesta execução e não é gravada. O texto digitado fica oculto.\n');
+    secretKey = (await ask('Secret key: ', true)).trim();
+    if (!isSecretKey(secretKey)) throw new Error('Isso não é uma Secret key (sb_secret_...) nem uma chave service_role.');
+  }
 
   const nome = await ask('Nome: ');
   if (!nome) throw new Error('Informe o nome.');
