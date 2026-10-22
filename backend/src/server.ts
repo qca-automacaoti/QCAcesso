@@ -4,6 +4,7 @@ import { loadEnv } from './config/env';
 import { createMailer } from './config/mailer';
 import { createIdentityProvider } from './modules/auth/auth.provider';
 import { AuthService } from './modules/auth/auth.service';
+import { SupabaseSessionStore } from './modules/auth/session.store';
 import { iniciarJobsAlertas } from './jobs/alertas.scheduler';
 
 async function iniciarServidor() {
@@ -23,7 +24,15 @@ async function iniciarServidor() {
     }
   }
 
-  const auth = new AuthService(createIdentityProvider(config), config.SESSION_TTL_MS);
+  // SESSION_STORE=supabase reproduz localmente o comportamento serverless (sessões no banco).
+  const provider = createIdentityProvider(config);
+  const usarBanco = process.env.SESSION_STORE === 'supabase';
+  if (usarBanco) console.log('Sessões persistidas no banco (mesmo caminho usado na Vercel).');
+  const auth = new AuthService(
+    provider,
+    config.SESSION_TTL_MS,
+    usarBanco ? new SupabaseSessionStore(config, provider) : undefined,
+  );
   const server = createApp(config, auth).listen(config.PORT, config.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1', () => {
     console.log('QCAcesso API em http://localhost:' + config.PORT);
   });
