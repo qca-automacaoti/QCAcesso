@@ -27,13 +27,24 @@ export class AuthError extends Error {
   }
 }
 
+// Tokens do Supabase Auth. Persistidos para reconstruir a sessão em ambiente serverless,
+// onde o cliente que guardava a identidade em memória não sobrevive entre requisições.
+export interface IdentityTokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
 export interface IdentitySession {
   signIn(email: string, senha: string): Promise<Usuario>;
   currentUser(): Promise<Usuario>;
   accessToken(): Promise<string>;
   signOut(): Promise<void>;
+  /** Ausente em provedores que não expõem tokens (usado apenas pelo store persistente). */
+  tokens?(): Promise<IdentityTokens>;
 }
 export interface IdentityProvider {
   createSession(): IdentitySession;
+  /** Reconstrói uma sessão a partir dos tokens persistidos. */
+  restoreSession?(tokens: IdentityTokens): IdentitySession;
   health(): Promise<void>;
 }

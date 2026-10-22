@@ -25,6 +25,12 @@ export interface Database {
         Update: { nome?: string; email?: string; perfil?: PerfilUsuario; ativo?: boolean };
         Relationships: [];
       };
+      sessoes: {
+        Row: { token_hash: string; usuario_id: string; access_token: string; refresh_token: string; expires_at: string; created_at: string };
+        Insert: { token_hash: string; usuario_id: string; access_token: string; refresh_token: string; expires_at: string; created_at?: string };
+        Update: { access_token?: string; refresh_token?: string; expires_at?: string };
+        Relationships: [];
+      };
       funcionarios: {
         Row: {
           id: string;
