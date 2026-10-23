@@ -22,8 +22,8 @@ export interface Database {
     Tables: {
       usuarios: {
         Row: Usuario;
-        Insert: { id: string; nome: string; email: string; perfil?: PerfilUsuario; ativo?: boolean; created_at?: string };
-        Update: { nome?: string; email?: string; perfil?: PerfilUsuario; ativo?: boolean };
+        Insert: { id: string; nome: string; email: string; perfil?: PerfilUsuario; ativo?: boolean; created_at?: string; deve_trocar_senha?: boolean };
+        Update: { nome?: string; email?: string; perfil?: PerfilUsuario; ativo?: boolean; deve_trocar_senha?: boolean };
         Relationships: [];
       };
       sessoes: {
@@ -281,6 +281,10 @@ export interface Database {
       };
       administrar_usuario: {
         Args: { p_usuario_id: string; p_perfil: PerfilUsuario; p_ativo: boolean };
+        Returns: Database['public']['Tables']['usuarios']['Row'];
+      };
+      concluir_troca_senha: {
+        Args: Record<string, never>;
         Returns: Database['public']['Tables']['usuarios']['Row'];
       };
       registrar_ferias_ti: {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CalendarCheck, ChevronLeft, ChevronRight, Plane, Users } from 'lucide-react'
 import { useAuth } from '../auth/auth.context'
+import { perfilLabels } from '../auth/auth.types'
 import { tecnologiaApi } from './tecnologia.api'
 import type { CalendarioTi, NovoPeriodoTi, PeriodoFeriasTi } from './tecnologia.api'
 import {
@@ -9,7 +10,7 @@ import {
 } from './calendario'
 
 const CORES = 8
-const calendarioVazio: CalendarioTi = { mes: mesCorrente(), inicio: '', fim: '', colaboradores: [], supervisores: [], periodos: [], podeCadastrar: false }
+const calendarioVazio: CalendarioTi = { mes: mesCorrente(), inicio: '', fim: '', colaboradores: [], supervisores: [], periodos: [], podeCadastrar: false, visaoCompleta: false }
 
 /** Cor estável por colaborador: o mesmo integrante mantém a cor em qualquer mês. */
 function corDoColaborador(chave: string) {
@@ -115,13 +116,18 @@ export function TecnologiaPage() {
 
   const hoje = hojeIso()
   const deFeriasHoje = ativos.filter((periodo) => hoje >= periodo.dataInicio && hoje < periodo.dataFim).length
+  const visaoCompleta = dados.visaoCompleta
+  // Visão restrita: o usuário acompanha apenas as próprias férias.
+  const diasNoMes = dias.filter((dia) => dia.doMes && ativos.some((periodo) => dia.iso >= periodo.dataInicio && dia.iso < periodo.dataFim)).length
 
   return <section className="ti-page" aria-labelledby="ti-title">
     <div className="dashboard-heading">
       <div>
         <span className="section-label">TECNOLOGIA</span>
-        <h1 id="ti-title">Férias da equipe de TI</h1>
-        <p>Calendário mensal com o período de afastamento de cada integrante da Tecnologia, do primeiro dia de férias até o retorno.</p>
+        <h1 id="ti-title">{visaoCompleta ? 'Férias da equipe de TI' : 'Minhas férias'}</h1>
+        <p>{visaoCompleta
+          ? 'Calendário mensal com o período de afastamento de cada colaborador, do primeiro dia de férias até o retorno.'
+          : 'Calendário mensal com os seus períodos de férias, do primeiro dia de afastamento até o retorno.'}</p>
       </div>
       <div className="heading-actions">
         <button className="button button-secondary" onClick={() => void carregar(mes)} disabled={loading}>{loading ? 'Atualizando…' : 'Atualizar'}</button>
@@ -129,30 +135,37 @@ export function TecnologiaPage() {
       </div>
     </div>
 
-    <div className="indicator-grid ti-summary">
-      <article className="indicator-card indicator-neutro">
+    <div className={visaoCompleta ? 'indicator-grid ti-summary' : 'indicator-grid ti-summary ti-summary-restrita'}>
+      {visaoCompleta ? <article className="indicator-card indicator-neutro">
         <div className="indicator-topline">
           <span className="indicator-icon" aria-hidden="true"><Users size={16} strokeWidth={1.75} /></span>
-          <span>Equipe de TI</span>
+          <span>Colaboradores</span>
         </div>
         <strong>{dados.colaboradores.length}</strong>
-        <p>Colaboradores com perfil Tecnologia</p>
-      </article>
-      <article className="indicator-card indicator-alerta">
+        <p>Tecnologia, Supervisão, Auditoria e Administração</p>
+      </article> : <article className="indicator-card indicator-neutro">
+        <div className="indicator-topline">
+          <span className="indicator-icon" aria-hidden="true"><Plane size={16} strokeWidth={1.75} /></span>
+          <span>Dias de férias no mês</span>
+        </div>
+        <strong>{diasNoMes}</strong>
+        <p>Dias de afastamento em {rotuloMes(mes).toLowerCase()}</p>
+      </article>}
+      {visaoCompleta && <article className="indicator-card indicator-alerta">
         <div className="indicator-topline">
           <span className="indicator-icon" aria-hidden="true"><Plane size={16} strokeWidth={1.75} /></span>
           <span>De férias hoje</span>
         </div>
         <strong>{deFeriasHoje}</strong>
-        <p>Integrantes afastados nesta data</p>
-      </article>
+        <p>Colaboradores afastados nesta data</p>
+      </article>}
       <article className="indicator-card indicator-sucesso">
         <div className="indicator-topline">
           <span className="indicator-icon" aria-hidden="true"><CalendarCheck size={16} strokeWidth={1.75} /></span>
           <span>Períodos no mês</span>
         </div>
         <strong>{ativos.length}</strong>
-        <p>Férias que passam por {rotuloMes(mes).toLowerCase()}</p>
+        <p>{visaoCompleta ? 'Férias que passam por' : 'Seus períodos em'} {rotuloMes(mes).toLowerCase()}</p>
       </article>
     </div>
 
@@ -162,15 +175,15 @@ export function TecnologiaPage() {
     {mostrarCadastro && podeCadastrar && <section className="dashboard-panel">
       <div className="panel-header">
         <div>
-          <h2>Cadastrar férias de TI</h2>
+          <h2>Cadastrar férias</h2>
           <p>O cadastro agenda automaticamente o bloqueio no afastamento e o desbloqueio no retorno.</p>
         </div>
       </div>
       <form className="ti-form" onSubmit={cadastrar}>
-        <label>Colaborador de TI
+        <label>Colaborador
           <select required value={form.colaboradorId} onChange={(evento) => setForm({ ...form, colaboradorId: evento.target.value })}>
             <option value="">Selecione</option>
-            {dados.colaboradores.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}
+            {dados.colaboradores.map((item) => <option key={item.id} value={item.id}>{item.nome} · {perfilLabels[item.perfil]}</option>)}
           </select>
         </label>
         <label>Afastamento
@@ -182,13 +195,13 @@ export function TecnologiaPage() {
         <label>Supervisor responsável
           <select required value={supervisorSelecionado} onChange={(evento) => setForm({ ...form, supervisorId: evento.target.value })}>
             <option value="">Selecione</option>
-            {dados.supervisores.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}
+            {dados.supervisores.map((item) => <option key={item.id} value={item.id}>{item.nome}{item.perfil ? ` · ${perfilLabels[item.perfil]}` : ''}</option>)}
           </select>
         </label>
         <button className="button button-primary" disabled={busy === 'novo'}>{busy === 'novo' ? 'Cadastrando…' : 'Cadastrar'}</button>
       </form>
-      {dados.colaboradores.length === 0 && <p className="muted-text">Nenhum colaborador com perfil Tecnologia está ativo. Cadastre o usuário em Usuários e selecione o perfil Tecnologia.</p>}
-      {dados.supervisores.length === 0 && <p className="muted-text">Nenhum supervisor ativo disponível para responder pelas ações de bloqueio e desbloqueio.</p>}
+      {dados.colaboradores.length === 0 && <p className="muted-text">Nenhum colaborador elegível está ativo. Cadastre o usuário em Usuários com o perfil Tecnologia, Supervisor, Auditor ou Administrador.</p>}
+      {dados.supervisores.length === 0 && <p className="muted-text">Nenhum supervisor ou administrador ativo disponível para responder pelas ações de bloqueio e desbloqueio.</p>}
       <p className="access-guidance">O retorno é o primeiro dia de trabalho após as férias: é a data em que o acesso é liberado novamente.</p>
     </section>}
 
@@ -207,7 +220,7 @@ export function TecnologiaPage() {
 
       <div className="ti-calendar-wrap">
       <table className="ti-calendar">
-        <caption className="sr-only">Férias da equipe de TI em {rotuloMes(mes)}</caption>
+        <caption className="sr-only">{visaoCompleta ? `Férias da equipe em ${rotuloMes(mes)}` : `Minhas férias em ${rotuloMes(mes)}`}</caption>
         <thead>
           <tr>{nomesDosDias.map((nome) => <th key={nome} scope="col">{nome}</th>)}</tr>
         </thead>
@@ -248,13 +261,13 @@ export function TecnologiaPage() {
         {legenda.map((item) => <li key={item.chave}><span className={`ti-dot ti-cor-${corDoColaborador(item.chave)}`} aria-hidden="true" />{item.nome}</li>)}
         <li className="ti-legend-note"><span className="ti-dot ti-dot-retorno" aria-hidden="true" />↩ dia do retorno (acesso liberado)</li>
       </ul>}
-      {!loading && ativos.length === 0 && <p className="empty-state">Nenhuma férias de TI registrada em {rotuloMes(mes).toLowerCase()}.</p>}
+      {!loading && ativos.length === 0 && <p className="empty-state">{visaoCompleta ? "Nenhuma férias registrada em " : "Você não tem férias registradas em "}{rotuloMes(mes).toLowerCase()}.</p>}
     </section>
 
     {ativos.length > 0 && <section className="dashboard-panel">
       <div className="panel-header">
         <div>
-          <h2>Períodos do mês</h2>
+          <h2>{visaoCompleta ? "Períodos do mês" : "Meus períodos no mês"}</h2>
           <p>Do afastamento ao retorno, com o supervisor responsável pelas ações de acesso.</p>
         </div>
       </div>
@@ -284,7 +297,7 @@ export function TecnologiaPage() {
           </article>
         })}
       </div>
-      {!podeCadastrar && <p className="muted-text">Seu perfil permite consultar o calendário. Somente Administração e Supervisão podem cadastrar ou cancelar férias da TI.</p>}
+      {!podeCadastrar && <p className="muted-text">Você acompanha apenas as suas férias. Somente Administração e Supervisão cadastram, cancelam e visualizam as férias de outros colaboradores.</p>}
     </section>}
   </section>
 }

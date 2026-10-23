@@ -9,15 +9,23 @@ export interface Usuario {
   perfil: PerfilUsuario;
   ativo: boolean;
   created_at: string;
+  /** Senha provisória definida pela Administração: o acesso só é liberado após a troca. */
+  deve_trocar_senha?: boolean;
 }
 
-export type UsuarioAutenticado = Pick<Usuario, 'id' | 'nome' | 'email' | 'perfil'>;
+export type UsuarioAutenticado = Pick<Usuario, 'id' | 'nome' | 'email' | 'perfil'> & { deveTrocarSenha: boolean };
 
 export function authorizeUser(user: Usuario | null): UsuarioAutenticado {
   if (!user || user.ativo !== true || !PERFIS.includes(user.perfil)) {
     throw new AuthError(403, 'ACESSO_NEGADO', 'Usuário sem acesso ativo ao QCAcesso. Contate o administrador.');
   }
-  return { id: user.id, nome: user.nome, email: user.email, perfil: user.perfil };
+  return {
+    id: user.id,
+    nome: user.nome,
+    email: user.email,
+    perfil: user.perfil,
+    deveTrocarSenha: user.deve_trocar_senha === true,
+  };
 }
 
 export class AuthError extends Error {
@@ -41,10 +49,20 @@ export interface IdentitySession {
   signOut(): Promise<void>;
   /** Ausente em provedores que não expõem tokens (usado apenas pelo store persistente). */
   tokens?(): Promise<IdentityTokens>;
+  /** Troca a senha do usuário da própria sessão. */
+  updatePassword?(novaSenha: string): Promise<void>;
 }
 export interface IdentityProvider {
   createSession(): IdentitySession;
   /** Reconstrói uma sessão a partir dos tokens persistidos. */
   restoreSession?(tokens: IdentityTokens): IdentitySession;
+  /** Confere a senha atual sem abrir sessão, antes de permitir a troca. */
+  verifyCredentials?(email: string, senha: string): Promise<void>;
   health(): Promise<void>;
 }
+
+/**
+ * Perfis que podem responder pelas ações de bloqueio e desbloqueio de um colaborador.
+ * Vale para todo o sistema: checklist, controle de acesso e férias da TI.
+ */
+export const PERFIS_RESPONSAVEIS: PerfilUsuario[] = ['SUPERVISOR', 'ADMIN'];

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, StatusRevisao } from '../../config/database.types';
-import { AuthError } from '../auth/auth.types';
+import { AuthError, PERFIS_RESPONSAVEIS } from '../auth/auth.types';
+import type { PerfilUsuario } from '../auth/auth.types';
 
 type Db = SupabaseClient<Database>;
 type ChecklistRow = Database['public']['Tables']['checklist_revisao']['Row'];
@@ -134,7 +135,8 @@ export async function listarChecklist(db: Db, status?: StatusRevisao, offset = 0
     funcionarioIds.length
       ? db.from('funcionarios').select('id,supervisor_id').in('id', funcionarioIds)
       : Promise.resolve({ data: [], error: null }),
-    db.from('usuarios').select('id,nome').eq('perfil', 'SUPERVISOR').eq('ativo', true).order('nome').limit(500),
+    // Responsável pelas ações de acesso: Supervisão ou Administração.
+    db.from('usuarios').select('id,nome').in('perfil', PERFIS_RESPONSAVEIS).eq('ativo', true).order('nome').limit(500),
     carregarResumo(db),
   ]);
   if (funcionariosResult.error || supervisoresResult.error) erroChecklist();
@@ -152,7 +154,7 @@ export async function listarChecklist(db: Db, status?: StatusRevisao, offset = 0
     itens: rows.map((row) => {
       const supervisorId = row.funcionario_id ? funcionarioPorId.get(row.funcionario_id)?.supervisor_id ?? null : null;
       const supervisor = supervisorId ? supervisorPorId.get(supervisorId) : undefined;
-      const supervisorAtivo = Boolean(supervisor?.ativo && supervisor.perfil === 'SUPERVISOR');
+      const supervisorAtivo = Boolean(supervisor?.ativo && PERFIS_RESPONSAVEIS.includes(supervisor.perfil as PerfilUsuario));
       return toItem(row, supervisorId, supervisor?.nome ?? null, supervisorAtivo);
     }),
     total: count ?? 0,

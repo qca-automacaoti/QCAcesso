@@ -12,11 +12,12 @@ import { UsuariosPage } from '../administracao/UsuariosPage'
 import { ConfiguracoesPage } from '../configuracoes/ConfiguracoesPage'
 import { TecnologiaPage } from '../tecnologia/TecnologiaPage'
 import { LoginPage } from './LoginPage'
+import { TrocaSenhaPage } from './TrocaSenhaPage'
 import { ProtectedRoute } from './ProtectedRoute'
 import { rotaInicial } from './auth.types'
 
 export function AppRouter() {
-  const { state, login, reload } = useAuth()
+  const { state, login, logout, reload } = useAuth()
   const location = useLocation()
 
   if (state.status === 'loading') {
@@ -27,6 +28,10 @@ export function AppRouter() {
       <p role="alert">{state.message}</p>
       <button className="button button-primary" onClick={() => void reload()}>Tentar novamente</button>
     </main>
+  }
+  // Senha provisória retém o sistema inteiro: nenhuma rota é montada antes da troca.
+  if (state.status === 'authenticated' && state.usuario.deveTrocarSenha) {
+    return <TrocaSenhaPage nome={state.usuario.nome} onConcluir={reload} onSair={logout} />
   }
   const signedIn = state.status === 'authenticated'
   // Após o login, volta para a página protegida que o usuário tentou abrir.

@@ -24,7 +24,7 @@ export function tecnologiaController(auth: AuthService, config: EnvConfig, cooki
       throw new AuthError(400, 'MES_INVALIDO', 'Informe o mês no formato AAAA-MM.');
     }
     const usuario = res.locals.usuario as UsuarioAutenticado;
-    const calendario = await montarCalendarioTi(await db(req), solicitado || mesAtual(), PERFIS_CADASTRO.includes(usuario.perfil));
+    const calendario = await montarCalendarioTi(await db(req), solicitado || mesAtual(), usuario);
     res.json({ ...calendario, podeCadastrar: PERFIS_CADASTRO.includes(usuario.perfil) });
   })().catch(next); };
 

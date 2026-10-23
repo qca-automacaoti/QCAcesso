@@ -84,7 +84,8 @@ async function main() {
   }
 
   // O gatilho handle_new_user cria a linha como SUPERVISOR; aqui ficam nome, perfil e ativo definitivos.
-  const { error: perfilError } = await admin.from('usuarios').upsert({ id: userId, nome, email, perfil, ativo: true }, { onConflict: 'id' });
+  // A senha digitada é provisória: o sistema exige a troca no primeiro acesso.
+  const { error: perfilError } = await admin.from('usuarios').upsert({ id: userId, nome, email, perfil, ativo: true, deve_trocar_senha: true }, { onConflict: 'id' });
   if (perfilError) throw perfilError;
 
   // Confere o login do mesmo jeito que a API faz (chave pública).

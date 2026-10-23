@@ -208,7 +208,7 @@ begin
     select u.nome into v_nome_supervisor
     from public.usuarios as u
     where u.id = p_supervisor_id
-      and u.perfil = 'SUPERVISOR'::public.perfil_usuario
+      and u.perfil in ('SUPERVISOR'::public.perfil_usuario, 'ADMIN'::public.perfil_usuario)
       and u.ativo = true;
     if not found then
       raise exception using errcode = 'P0001', message = 'SUPERVISOR_INVALIDO';
@@ -358,7 +358,7 @@ begin
   select u.id into v_supervisor_ativo_id
   from public.usuarios as u
   where u.id = v_supervisor_id
-    and u.perfil = 'SUPERVISOR'::public.perfil_usuario
+    and u.perfil in ('SUPERVISOR'::public.perfil_usuario, 'ADMIN'::public.perfil_usuario)
     and u.ativo = true;
   if not found then
     raise exception using errcode = 'P0001', message = 'SUPERVISOR_INATIVO';

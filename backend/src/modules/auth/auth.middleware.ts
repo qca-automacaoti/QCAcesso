@@ -3,9 +3,20 @@ import type { AuthService } from './auth.service';
 import type { PerfilUsuario, UsuarioAutenticado } from './auth.types';
 import { AuthError } from './auth.types';
 
-export function requireAuth(service: AuthService, cookieName: string): RequestHandler {
+/**
+ * Exige sessão válida. Enquanto a senha for provisória, o acesso fica retido: somente
+ * as rotas da própria troca de senha passam `permitirSenhaProvisoria`.
+ */
+export function requireAuth(
+  service: AuthService,
+  cookieName: string,
+  options: { permitirSenhaProvisoria?: boolean } = {},
+): RequestHandler {
   return (req, res, next) => {
     service.currentUser(req.cookies?.[cookieName]).then((usuario) => {
+      if (usuario.deveTrocarSenha && !options.permitirSenhaProvisoria) {
+        return next(new AuthError(403, 'SENHA_PROVISORIA', 'Defina uma nova senha para continuar usando o sistema.'));
+      }
       res.locals.usuario = usuario;
       next();
     }).catch(next);

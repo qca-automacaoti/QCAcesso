@@ -11,12 +11,13 @@ const config = {
   PORT: 0, NODE_ENV: 'test', FRONTEND_ORIGIN: 'http://localhost:5173',
   SUPABASE_URL: 'https://exemplo.supabase.co', SUPABASE_KEY: 'sb_publishable_teste', SESSION_TTL_MS: 60_000,
 };
-const usuario = (email, perfil, ativo = true) => ({ id: email, nome: email.split('@')[0], email, perfil, ativo, created_at: '' });
+const usuario = (email, perfil, ativo = true, deveTrocarSenha = false) => ({ id: email, nome: email.split('@')[0], email, perfil, ativo, created_at: '', deve_trocar_senha: deveTrocarSenha });
 const contas = {
   'admin@qca.com.br': { senha: 'senha-admin', usuario: usuario('admin@qca.com.br', 'ADMIN') },
   'rh@qca.com.br': { senha: 'senha-rh', usuario: usuario('rh@qca.com.br', 'RH') },
   'supervisor@qca.com.br': { senha: 'senha-supervisor', usuario: usuario('supervisor@qca.com.br', 'SUPERVISOR') },
   'ti@qca.com.br': { senha: 'senha-ti', usuario: usuario('ti@qca.com.br', 'TECNOLOGIA') },
+  'novo@qca.com.br': { senha: 'senha-provisoria', usuario: usuario('novo@qca.com.br', 'SUPERVISOR', true, true) },
   'inativo@qca.com.br': { senha: 'senha-inativo', usuario: usuario('inativo@qca.com.br', 'RH', false) },
 };
 
@@ -34,6 +35,11 @@ function fakeProvider() {
           if (!atual) throw new AuthError(401, 'SESSAO_EXPIRADA', 'Sua sessão expirou. Entre novamente.');
           return atual;
         },
+        // Permite que rotas de módulos cheguem às suas validações sem tocar no Supabase.
+        async accessToken() {
+          if (!atual) throw new AuthError(401, 'SESSAO_EXPIRADA', 'Sua sessão expirou. Entre novamente.');
+          return 'token-de-teste';
+        },
         async signOut() { atual = null; },
       };
     },
@@ -45,8 +51,8 @@ async function withApi(fn) {
   const server = createApp(config, auth).listen(0, '127.0.0.1');
   await once(server, 'listening');
   const base = `http://127.0.0.1:${server.address().port}/api`;
-  const call = (path, { body, cookie, headers = {} } = {}) => fetch(base + path, {
-    method: body === undefined ? 'GET' : 'POST',
+  const call = (path, { body, cookie, headers = {}, method } = {}) => fetch(base + path, {
+    method: method || (body === undefined ? 'GET' : 'POST'),
     headers: { 'Content-Type': 'application/json', 'X-QCA-Request': '1', ...(cookie ? { Cookie: cookie } : {}), ...headers },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
@@ -76,7 +82,7 @@ test('senha errada retorna 401 e não cria sessão', () => withApi(async (call) 
 test('login → me → logout → me revogado', () => withApi(async (call) => {
   const login = await call('/auth/login', { body: { email: ' Admin@QCA.com.br ', senha: 'senha-admin' } });
   assert.equal(login.status, 200);
-  assert.deepEqual((await login.json()).usuario, { id: 'admin@qca.com.br', nome: 'admin', email: 'admin@qca.com.br', perfil: 'ADMIN' });
+  assert.deepEqual((await login.json()).usuario, { id: 'admin@qca.com.br', nome: 'admin', email: 'admin@qca.com.br', perfil: 'ADMIN', deveTrocarSenha: false });
   const setCookie = sessionCookie(login);
   assert.match(setCookie, /HttpOnly/);
   assert.match(setCookie, /SameSite=Strict/);
@@ -144,4 +150,44 @@ test('Tecnologia consulta o calendário da TI, mas não cadastra nem acessa o re
   const mesInvalido = await call('/tecnologia/ferias?mes=2026-13', { cookie });
   assert.equal(mesInvalido.status, 400);
   assert.equal((await mesInvalido.json()).error.code, 'MES_INVALIDO');
+}));
+
+test('senha provisória retém o sistema até a troca', () => withApi(async (call) => {
+  const login = await call('/auth/login', { body: { email: 'novo@qca.com.br', senha: 'senha-provisoria' } });
+  assert.equal(login.status, 200);
+  assert.equal((await login.json()).usuario.deveTrocarSenha, true);
+  const cookie = sessionCookie(login).split(';')[0];
+  // A sessão continua válida: /auth/me é o que permite o front abrir a troca de senha.
+  const me = await call('/auth/me', { cookie });
+  assert.equal(me.status, 200);
+  assert.equal((await me.json()).usuario.deveTrocarSenha, true);
+  // Nenhuma outra rota responde enquanto a senha for provisória.
+  for (const rota of ['/dashboard', '/checklist', '/controle-acesso', '/usuarios', '/tecnologia/ferias', '/auditoria']) {
+    const resposta = await call(rota, { cookie });
+    assert.equal(resposta.status, 403, `rota ${rota} deveria estar retida`);
+    assert.equal((await resposta.json()).error.code, 'SENHA_PROVISORIA');
+    // O bloqueio não pode derrubar a sessão, senão o usuário não consegue trocar a senha.
+    assert.equal(resposta.headers.getSetCookie().length, 0, `rota ${rota} não deveria limpar o cookie`);
+  }
+}));
+
+test('usuário com senha definitiva não é retido', () => withApi(async (call) => {
+  const login = await call('/auth/login', { body: { email: 'admin@qca.com.br', senha: 'senha-admin' } });
+  assert.equal((await login.json()).usuario.deveTrocarSenha, false);
+  const cookie = sessionCookie(login).split(';')[0];
+  const resposta = await call('/tecnologia/ferias?mes=2026-13', { cookie });
+  // Chega na validação da própria rota, ou seja, passou pelo controle de senha.
+  assert.equal(resposta.status, 400);
+  assert.equal((await resposta.json()).error.code, 'MES_INVALIDO');
+}));
+
+test('edição de usuário recusa e-mail inválido antes de tocar no cadastro', () => withApi(async (call) => {
+  const login = await call('/auth/login', { body: { email: 'admin@qca.com.br', senha: 'senha-admin' } });
+  const cookie = sessionCookie(login).split(';')[0];
+  const resposta = await call('/usuarios/11111111-1111-1111-1111-111111111111', {
+    method: 'PATCH', cookie,
+    body: { perfil: 'SUPERVISOR', ativo: true, nome: 'Nome Valido', email: 'sem-arroba' },
+  });
+  assert.equal(resposta.status, 400);
+  assert.equal((await resposta.json()).error.code, 'DADOS_INVALIDOS');
 }));

@@ -15,6 +15,14 @@ export function authRoutes(service: AuthService, config: EnvConfig) {
     message: { error: { code: 'MUITAS_TENTATIVAS', message: 'Muitas tentativas. Aguarde 15 minutos e tente novamente.' } },
   }), controller.login);
   router.post('/logout', controller.logout);
-  router.get('/me', requireAuth(service, cookieSettings(config).name), requirePerfil(...PERFIS), controller.me);
+  const cookieName = cookieSettings(config).name;
+  // /me e a troca de senha continuam acessíveis com senha provisória: são o caminho
+  // que o usuário precisa percorrer para liberar o próprio acesso.
+  router.get('/me', requireAuth(service, cookieName, { permitirSenhaProvisoria: true }), requirePerfil(...PERFIS), controller.me);
+  router.post('/senha', rateLimit({
+    windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false,
+    skipSuccessfulRequests: true,
+    message: { error: { code: 'MUITAS_TENTATIVAS', message: 'Muitas tentativas. Aguarde 15 minutos e tente novamente.' } },
+  }), requireAuth(service, cookieName, { permitirSenhaProvisoria: true }), requirePerfil(...PERFIS), controller.trocarSenha);
   return router;
 }

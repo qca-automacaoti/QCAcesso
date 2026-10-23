@@ -7,13 +7,22 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, StatusPeriodo } from '../../config/database.types';
-import { AuthError } from '../auth/auth.types';
+import type { PerfilUsuario, UsuarioAutenticado } from '../auth/auth.types';
+import { AuthError, PERFIS_RESPONSAVEIS } from '../auth/auth.types';
 
 type Db = SupabaseClient<Database>;
 type PeriodoRow = Database['public']['Tables']['periodos_ferias']['Row'];
 
-export interface ColaboradorTi { id: string; nome: string; email: string }
-export interface SupervisorTi { id: string; nome: string }
+/** Perfis com férias controladas nesta área. RH permanece no fluxo das planilhas. */
+export const PERFIS_COM_FERIAS_TI: PerfilUsuario[] = ['TECNOLOGIA', 'SUPERVISOR', 'AUDITOR', 'ADMIN'];
+
+/** Somente Administração e Supervisão enxergam as férias dos demais colaboradores. */
+export function podeVerTodos(usuario: UsuarioAutenticado): boolean {
+  return usuario.perfil === 'ADMIN' || usuario.perfil === 'SUPERVISOR';
+}
+
+export interface ColaboradorTi { id: string; nome: string; email: string; perfil: PerfilUsuario }
+export interface SupervisorTi { id: string; nome: string; perfil?: PerfilUsuario }
 
 export interface PeriodoFeriasTi {
   id: string;
@@ -32,6 +41,8 @@ export interface CalendarioTi {
   colaboradores: ColaboradorTi[];
   supervisores: SupervisorTi[];
   periodos: PeriodoFeriasTi[];
+  /** Falso quando o usuário enxerga apenas as próprias férias. */
+  visaoCompleta: boolean;
 }
 
 export interface NovoPeriodoTiInput { colaboradorId: string; dataInicio: string; dataFim: string; supervisorId: string }
@@ -64,14 +75,21 @@ function validarData(value: string): boolean {
   return !Number.isNaN(data.getTime()) && data.toISOString().slice(0, 10) === value;
 }
 
-export async function montarCalendarioTi(db: Db, mes: string, incluirSupervisores: boolean): Promise<CalendarioTi> {
+export async function montarCalendarioTi(db: Db, mes: string, usuario: UsuarioAutenticado): Promise<CalendarioTi> {
   const { inicio, fim } = limitesDoMes(mes);
+  const completo = podeVerTodos(usuario);
 
+  // Sem permissão para ver os demais, a consulta já sai restrita ao próprio usuário:
+  // nenhum nome ou período de terceiro chega a ser carregado.
   const [colaboradoresResultado, espelhosResultado, supervisoresResultado] = await Promise.all([
-    db.from('usuarios').select('id,nome,email').eq('perfil', 'TECNOLOGIA').eq('ativo', true).order('nome', { ascending: true }),
-    db.from('funcionarios').select('id,nome,usuario_id,supervisor_id').not('usuario_id', 'is', null),
-    incluirSupervisores
-      ? db.from('usuarios').select('id,nome').eq('perfil', 'SUPERVISOR').eq('ativo', true).order('nome', { ascending: true })
+    completo
+      ? db.from('usuarios').select('id,nome,email,perfil').in('perfil', PERFIS_COM_FERIAS_TI).eq('ativo', true).order('nome', { ascending: true })
+      : db.from('usuarios').select('id,nome,email,perfil').eq('id', usuario.id),
+    completo
+      ? db.from('funcionarios').select('id,nome,usuario_id,supervisor_id').not('usuario_id', 'is', null)
+      : db.from('funcionarios').select('id,nome,usuario_id,supervisor_id').eq('usuario_id', usuario.id),
+    completo
+      ? db.from('usuarios').select('id,nome,perfil').in('perfil', PERFIS_RESPONSAVEIS).eq('ativo', true).order('nome', { ascending: true })
       : Promise.resolve({ data: [], error: null }),
   ]);
   if (colaboradoresResultado.error || espelhosResultado.error || supervisoresResultado.error) throw erroTecnologia();
@@ -81,7 +99,7 @@ export async function montarCalendarioTi(db: Db, mes: string, incluirSupervisore
   const supervisores = (supervisoresResultado.data ?? []) as SupervisorTi[];
 
   if (espelhos.length === 0) {
-    return { mes, inicio, fim, colaboradores, supervisores, periodos: [] };
+    return { mes, inicio, fim, colaboradores, supervisores, periodos: [], visaoCompleta: completo };
   }
 
   // Períodos que tocam o mês exibido: começam antes do fim e terminam depois do início.
@@ -112,6 +130,7 @@ export async function montarCalendarioTi(db: Db, mes: string, incluirSupervisore
     inicio,
     fim,
     colaboradores,
+    visaoCompleta: completo,
     supervisores,
     periodos: periodos.flatMap((periodo) => {
       const espelho = espelhoPorId.get(periodo.funcionario_id);

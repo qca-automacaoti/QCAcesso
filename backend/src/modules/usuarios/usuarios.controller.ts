@@ -25,7 +25,15 @@ export function usuariosController(auth: AuthService, config: EnvConfig, cookieN
       const perfil = String(req.body?.perfil ?? '').toUpperCase() as PerfilUsuario;
       const ativo = req.body?.ativo;
       if (!perfis.includes(perfil) || typeof ativo !== 'boolean') throw new AuthError(400, 'DADOS_INVALIDOS', 'Informe um perfil e um status válido.');
-      const item = await atualizarUsuario(await db(req), res.locals.usuario as UsuarioAutenticado, String(req.params.id ?? ''), { perfil, ativo });
+      // Campos de identidade são opcionais: ausentes, a edição altera só perfil e status.
+      const opcional = (valor: unknown) => typeof valor === 'string' ? valor : undefined;
+      const item = await atualizarUsuario(config, await db(req), res.locals.usuario as UsuarioAutenticado, String(req.params.id ?? ''), {
+        perfil,
+        ativo,
+        nome: opcional(req.body?.nome),
+        email: opcional(req.body?.email),
+        senha: opcional(req.body?.senha),
+      });
       res.json({ item });
     })().catch(next);
   };

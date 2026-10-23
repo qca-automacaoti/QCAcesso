@@ -67,7 +67,10 @@ export function createApp(config: EnvConfig, auth: AuthService) {
   const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
     const requestId = res.getHeader('X-Request-Id');
     if (error instanceof AuthError) {
-      if ([401, 403].includes(error.status) && error.code !== 'ORIGEM_NAO_PERMITIDA' && error.code !== 'PERFIL_NAO_PERMITIDO') {
+      // SENHA_PROVISORIA e SENHA_ATUAL_INVALIDA não encerram a sessão: o usuário continua
+      // autenticado e precisa dela para concluir a troca de senha.
+      const mantemSessao = ['ORIGEM_NAO_PERMITIDA', 'PERFIL_NAO_PERMITIDO', 'SENHA_PROVISORIA', 'SENHA_ATUAL_INVALIDA'];
+      if ([401, 403].includes(error.status) && !mantemSessao.includes(error.code)) {
         const cookie = cookieSettings(config);
         res.clearCookie(cookie.name, cookie.options);
       }

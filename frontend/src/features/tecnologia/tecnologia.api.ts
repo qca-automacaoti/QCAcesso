@@ -1,9 +1,10 @@
 import { apiRequest } from '../../lib/api-client'
+import type { PerfilUsuario } from '../auth/auth.types'
 
 export type StatusPeriodo = 'CONFIRMADO' | 'CANCELADO' | 'CONCLUIDO'
 
-export interface ColaboradorTi { id: string; nome: string; email: string }
-export interface SupervisorTi { id: string; nome: string }
+export interface ColaboradorTi { id: string; nome: string; email: string; perfil: PerfilUsuario }
+export interface SupervisorTi { id: string; nome: string; perfil?: PerfilUsuario }
 
 export interface PeriodoFeriasTi {
   id: string
@@ -23,6 +24,7 @@ export interface CalendarioTi {
   supervisores: SupervisorTi[]
   periodos: PeriodoFeriasTi[]
   podeCadastrar: boolean
+  visaoCompleta: boolean
 }
 
 export interface NovoPeriodoTi { colaboradorId: string; dataInicio: string; dataFim: string; supervisorId: string }

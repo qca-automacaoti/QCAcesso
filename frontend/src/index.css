@@ -523,3 +523,38 @@ select { cursor: pointer; }
   .ti-toolbar-side { justify-content: space-between; }
   .ti-day { height: 84px; }
 }
+
+/* ---------- Troca obrigatória de senha ---------- */
+.login-help svg { vertical-align: -3px; margin-right: 6px; color: var(--success); }
+.login-leave { margin-top: 10px; padding-inline: 0; min-height: 36px; font-size: .8125rem; }
+.ti-summary-restrita { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* ---------- Edição de usuários ---------- */
+.user-row { grid-template-columns: minmax(0, 1fr) 150px 110px auto; }
+.user-row-editing { grid-template-columns: 1fr; align-items: stretch; border-color: var(--navy-800); box-shadow: 0 0 0 3px rgba(20, 27, 77, .06); }
+.user-edit-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto auto; gap: 12px; align-items: end; }
+.user-edit-grid label { display: grid; gap: 6px; color: var(--ink); font-size: .75rem; font-weight: 600; }
+.user-edit-grid input:not([type='checkbox']), .user-edit-grid select {
+  width: 100%; min-height: 40px; padding: 9px 12px; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-size: .875rem;
+}
+.user-edit-grid input:focus, .user-edit-grid select:focus { outline: 0; border-color: var(--navy-800); box-shadow: 0 0 0 3px rgba(20, 27, 77, .1); }
+/* Vence o `display: grid` de `.user-edit-grid label`: aqui o rótulo fica ao lado da caixa. */
+.user-edit-grid .user-active { display: flex; align-items: center; gap: 8px; white-space: nowrap; align-self: center; padding-bottom: 10px; }
+.user-row-editing .checklist-actions { justify-content: flex-start; align-items: end; padding-bottom: 2px; }
+.user-row-editing .button { min-height: 40px; padding: 8px 14px; font-size: .8125rem; }
+.user-row-editing .muted-text { margin: 12px 0 0; }
+.user-row .audit-type { align-self: center; }
+.user-row .status-pill { justify-self: start; align-self: center; }
+.user-row .checklist-actions { justify-content: flex-end; }
+.user-row .button { min-height: 36px; padding: 7px 12px; font-size: .8125rem; }
+
+@media (max-width: 1120px) {
+  .user-edit-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .user-edit-grid .checklist-actions { grid-column: 1 / -1; }
+}
+@media (max-width: 800px) {
+  .user-row, .user-edit-grid { grid-template-columns: 1fr; }
+  .user-row { align-items: start; gap: 10px; }
+  .user-row .checklist-actions { justify-content: flex-start; }
+}

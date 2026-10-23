@@ -1,7 +1,7 @@
 // DTO público de public.usuarios; perfil_usuario definido em schema.sql.
 export const PERFIS = ['ADMIN', 'RH', 'SUPERVISOR', 'AUDITOR', 'TECNOLOGIA'] as const
 export type PerfilUsuario = (typeof PERFIS)[number]
-export interface UsuarioAutenticado { id: string; nome: string; email: string; perfil: PerfilUsuario }
+export interface UsuarioAutenticado { id: string; nome: string; email: string; perfil: PerfilUsuario; deveTrocarSenha: boolean }
 export const perfilLabels: Record<PerfilUsuario, string> = {
   ADMIN: 'Administrador', RH: 'Recursos Humanos', SUPERVISOR: 'Supervisor', AUDITOR: 'Auditor', TECNOLOGIA: 'Tecnologia',
 }

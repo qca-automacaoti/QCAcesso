@@ -70,6 +70,22 @@ export class AuthService {
     }
   }
 
+  /**
+   * Troca a senha do usuário da sessão. A senha atual é conferida antes, para que um
+   * cookie roubado não seja suficiente para assumir a conta.
+   */
+  async trocarSenha(token: string | undefined, senhaAtual: string, novaSenha: string): Promise<UsuarioAutenticado> {
+    const usuario = await this.currentUser(token);
+    const session = await this.sessions.get(keyOf(token!), this.now());
+    if (!session) return this.unauthenticated();
+    if (!this.provider.verifyCredentials || !session.identity.updatePassword) {
+      throw new AuthError(503, 'TROCA_INDISPONIVEL', 'Troca de senha indisponível neste ambiente.');
+    }
+    await this.provider.verifyCredentials(usuario.email, senhaAtual);
+    await session.identity.updatePassword(novaSenha);
+    return { ...usuario, deveTrocarSenha: false };
+  }
+
   health() { return this.provider.health(); }
   close() { this.sessions.dispose(); }
 }
