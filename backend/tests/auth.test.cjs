@@ -191,3 +191,16 @@ test('edição de usuário recusa e-mail inválido antes de tocar no cadastro', 
   assert.equal(resposta.status, 400);
   assert.equal((await resposta.json()).error.code, 'DADOS_INVALIDOS');
 }));
+
+// A sessão restaurada (usada em ambiente serverless, onde a memória não sobrevive entre
+// requisições) precisa oferecer tudo que a sessão nova oferece. Foi o que faltou quando
+// a troca de senha respondia "indisponível neste ambiente" em produção.
+test('sessão restaurada expõe os mesmos recursos da sessão nova', () => {
+  const { createIdentityProvider } = require('../dist/modules/auth/auth.provider');
+  const provider = createIdentityProvider(config);
+  const nova = provider.createSession();
+  const restaurada = provider.restoreSession({ accessToken: 'access', refreshToken: 'refresh' });
+  for (const metodo of Object.keys(nova)) {
+    assert.equal(typeof restaurada[metodo], 'function', `a sessão restaurada não expõe ${metodo}`);
+  }
+});

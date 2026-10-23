@@ -103,12 +103,14 @@ export class SupabaseSessionStore implements SessionStore {
     };
     return {
       expiresAt,
+      // O espalhamento repassa a identidade inteira; abaixo ficam só os métodos que
+      // precisam gravar os tokens renovados. Um recurso novo do provedor não se perde aqui.
       identity: {
-        signIn: identity.signIn,
-        tokens: identity.tokens,
-        signOut: identity.signOut,
+        ...identity,
         currentUser: async () => { const usuario = await identity.currentUser(); await persistir(); return usuario; },
         accessToken: async () => { const token = await identity.accessToken(); await persistir(); return token; },
+        // A troca de senha rotaciona os tokens: grava os novos para a sessão seguir válida.
+        updatePassword: async (novaSenha: string) => { await identity.updatePassword!(novaSenha); await persistir(); },
       },
     };
   }

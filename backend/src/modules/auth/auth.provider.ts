@@ -96,6 +96,7 @@ export function createIdentityProvider(config: EnvConfig): IdentityProvider {
         async currentUser() { await ensure(); return session.currentUser(); },
         async accessToken() { await ensure(); return session.accessToken(); },
         async tokens() { await ensure(); return session.tokens!(); },
+        async updatePassword(novaSenha) { await ensure(); return session.updatePassword!(novaSenha); },
         async signOut() { await ensure().catch(() => undefined); return session.signOut(); },
       };
     },
